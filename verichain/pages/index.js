@@ -1,115 +1,160 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import Head from 'next/head';
+import { useState } from 'react';
+import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react';
+import { DocumentDuplicateIcon, ShareIcon, ExternalLinkIcon } from '@heroicons/react/outline';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export default function Profile() {
+  const address = useAddress();
+  const connectWithMetamask = useMetamask();
+  const disconnectWallet = useDisconnect();
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  // Mock credentials data for UI demonstration
+  const [credentials, setCredentials] = useState([
+    {
+      id: 'cert-123456789',
+      title: 'Bachelor of Computer Science',
+      issuer: 'University of Blockchain',
+      issueDate: '2025-03-15',
+      expiryDate: '2035-03-15',
+      status: 'valid',
+    },
+    {
+      id: 'cert-987654321',
+      title: 'Advanced Web3 Development',
+      issuer: 'Ethereum Academy',
+      issueDate: '2024-11-20',
+      expiryDate: null,
+      status: 'valid',
+    },
+    {
+      id: 'cert-567891234',
+      title: 'Blockchain Security Certificate',
+      issuer: 'CryptoSec Institute',
+      issueDate: '2024-07-10',
+      expiryDate: '2026-07-10',
+      status: 'valid',
+    },
+  ]);
 
-export default function Home() {
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert('Copied to clipboard!');
+  };
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              pages/index.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div>
+      <Head>
+        <title>Profile & Wallet | VeriChain</title>
+        <meta name="description" content="Manage your blockchain credentials" />
+      </Head>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Profile & Wallet</h1>
+        <p className="text-gray-600 dark:text-gray-300">
+          Manage your blockchain identity and credentials.
+        </p>
+      </div>
+
+      {address ?
+        <div className="space-y-8">
+          {/* Wallet Information */}
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">Wallet Information</h2>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div>
+                <div className="flex items-center">
+                  <p className="font-mono text-sm md:text-base truncate max-w-xs md:max-w-md">
+                    {address}
+                  </p>
+                  <button
+                    onClick={() => copyToClipboard(address)}
+                    className="ml-2 p-1 text-gray-500 hover:text-primary"
+                    title="Copy address"
+                  >
+                    <DocumentDuplicateIcon className="h-5 w-5" />
+                  </button>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">Connected with MetaMask</p>
+              </div>
+              <button onClick={disconnectWallet} className="btn-secondary mt-4 md:mt-0">
+                Disconnect
+              </button>
+            </div>
+          </div>
+
+          {/* Credentials */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">My Credentials</h2>
+              <span className="bg-primary-light text-primary-dark px-2 py-1 rounded-full text-sm">
+                {credentials.length} Credentials
+              </span>
+            </div>
+
+            {credentials.length > 0 ? (
+              <div className="space-y-4">
+                {credentials.map((credential) => (
+                  <div key={credential.id} className="card hover:shadow-lg transition-shadow">
+                    <div className="flex flex-col md:flex-row justify-between">
+                      <div>
+                        <h3 className="text-xl font-semibold">{credential.title}</h3>
+                        <p className="text-gray-600 dark:text-gray-300">{credential.issuer}</p>
+                        <div className="mt-2 flex items-center">
+                          <span className="text-sm text-gray-500">Issued: {credential.issueDate}</span>
+                          {credential.expiryDate && (
+                            <span className="text-sm text-gray-500 ml-4">
+                              Expires: {credential.expiryDate}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex mt-4 md:mt-0">
+                        <button
+                          className="p-2 text-gray-500 hover:text-primary"
+                          title="Share credential"
+                        >
+                          <ShareIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          className="p-2 text-gray-500 hover:text-primary ml-2"
+                          title="View on blockchain"
+                        >
+                          <ExternalLinkIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                      <div className="flex items-center">
+                        <span className={`h-2 w-2 rounded-full ${credential.status === 'valid' ? 'bg-green-500' : 'bg-red-500'} mr-2`}></span>
+                        <span className="text-sm capitalize">{credential.status}</span>
+                      </div>
+                      <span className="text-sm font-mono text-gray-500 truncate max-w-xs">
+                        ID: {credential.id}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card text-center py-8">
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  You don't have any credentials yet.
+                </p>
+                <button className="btn-primary">Request a Credential</button>
+              </div>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        :
+        <div className="card text-center py-10">
+          <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            Connect your wallet to view and manage your blockchain credentials.
+          </p>
+          <button onClick={connectWithMetamask} className="btn-primary">
+            Connect with MetaMask
+          </button>
+        </div>}
     </div>
   );
 }

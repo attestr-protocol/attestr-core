@@ -1,5 +1,16 @@
-import "@/styles/globals.css";
+import '../styles/globals.css';
+import Layout from '../components/layout/Layout';
+import { ThirdwebProvider } from '@thirdweb-dev/react';
+import { Mumbai } from '@thirdweb-dev/chains';
 
-export default function App({ Component, pageProps }) {
-  return <Component {...pageProps} />;
+function MyApp({ Component, pageProps }) {
+  return (
+    <ThirdwebProvider activeChain={Mumbai}>
+      <Layout>
+        <Component {...pageProps} />
+      </Layout>
+    </ThirdwebProvider>
+  );
 }
+
+export default MyApp;

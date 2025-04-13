@@ -1,0 +1,155 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_certificateContract",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "bytes32",
+                "name": "verificationId",
+                "type": "bytes32"
+            },
+            {
+                "indexed": true,
+                "internalType": "bytes32",
+                "name": "certificateId",
+                "type": "bytes32"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "verifier",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isValid",
+                "type": "bool"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "name": "CertificateVerified",
+        "type": "event"
+    },
+    {
+        "inputs": [],
+        "name": "certificateContract",
+        "outputs": [
+            {
+                "internalType": "contract CertificateIssuance",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "verificationId",
+                "type": "bytes32"
+            }
+        ],
+        "name": "getVerification",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "certificateId",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "address",
+                "name": "verifier",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "isValid",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "certificateId",
+                "type": "bytes32"
+            }
+        ],
+        "name": "verifyCertificate",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "verificationId",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bool",
+                "name": "isValid",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "name": "verifications",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "certificateId",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "address",
+                "name": "verifier",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "isValid",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
