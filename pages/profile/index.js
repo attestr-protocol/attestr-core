@@ -138,7 +138,7 @@ export default function Profile() {
                         ) : (
                             <div className="card text-center py-8">
                                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                                    You don't have any credentials yet.
+                                    You do not have any credentials yet.
                                 </p>
                                 <button className="btn-primary">Request a Credential</button>
                             </div>
