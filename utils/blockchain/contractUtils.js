@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
 
 // Contract ABIs - will be replaced with actual compiled ABIs
-import CertificateIssuanceABI from '../../CertificateIssuance.json';
-import VerificationABI from '../../Verification.json';
+import CertificateIssuanceABI from '../../contracts/abis/CertificateIssuance.json';
+import VerificationABI from '../../contracts/abis/Verification.json';
 
 // Contract addresses - will be updated after deployment
 const CONTRACT_ADDRESSES = {
