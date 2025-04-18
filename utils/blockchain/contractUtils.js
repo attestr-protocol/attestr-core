@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
 
 // Contract ABIs - will be replaced with actual compiled ABIs
-import CertificateIssuanceABI from '../../contracts/abis/CertificateIssuance.json';
-import VerificationABI from '../../contracts/abis/Verification.json';
+import CertificateIssuanceABI from '../../CertificateIssuance.json';
+import VerificationABI from '../../Verification.json';
 
 // Contract addresses - will be updated after deployment
 const CONTRACT_ADDRESSES = {
@@ -167,8 +167,7 @@ export const recordVerification = async (certificateId) => {
 
         // Find the CertificateVerified event in the logs
         const event = receipt.events.find(e => e.event === 'CertificateVerified');
-        const verificationId = event.args.verificationId;
-        const isValid = event.args.isValid;
+        const {verificationId, isValid} = event.args;
 
         return {
             success: true,
@@ -199,8 +198,7 @@ export const getCertificatesForRecipient = async (address) => {
         // For each certificate ID, get the full details
         const certificates = await Promise.all(
             certificateIds.map(async (id) => {
-                const result = await verifyCertificate(id);
-                return result;
+                return await verifyCertificate(id);
             })
         );
 
@@ -224,8 +222,7 @@ export const getCertificatesForIssuer = async (address) => {
         // For each certificate ID, get the full details
         const certificates = await Promise.all(
             certificateIds.map(async (id) => {
-                const result = await verifyCertificate(id);
-                return result;
+                return await verifyCertificate(id);
             })
         );
 
