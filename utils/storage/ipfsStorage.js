@@ -31,9 +31,7 @@ export async function storeCertificateMetadata(certificateData) {
         ];
 
         // Upload to IPFS via web3.storage
-        const cid = await client.put(files);
-
-        return cid;
+        return await client.put(files);
     } catch (error) {
         console.error('Error storing certificate metadata:', error);
         throw error;
@@ -46,21 +44,23 @@ export async function storeCertificateMetadata(certificateData) {
  * @returns {Promise<Object>} - Certificate metadata
  */
 export async function retrieveCertificateMetadata(cid) {
-    if (!client) {
-        throw new Error('Storage client not initialized. Call initializeStorage first.');
+    if (!cid) {
+        throw new Error('No CID provided');
     }
 
     try {
+        // Clean the CID if it includes the ipfs:// prefix
+        const cleanCid = cid.replace('ipfs://', '');
+
         // Get the data from IPFS
-        const res = await fetch(`https://${cid}.ipfs.dweb.link/certificate-metadata.json`);
+        const res = await fetch(`https://${cleanCid}.ipfs.dweb.link/certificate-metadata.json`);
 
         if (!res.ok) {
             throw new Error(`Failed to fetch data: ${res.status} ${res.statusText}`);
         }
 
         // Parse the JSON data
-        const metadata = await res.json();
-        return metadata;
+        return await res.json();
     } catch (error) {
         console.error('Error retrieving certificate metadata:', error);
         throw error;
@@ -86,7 +86,7 @@ export function formatCertificateMetadata(data) {
             expiryDate: data.expiryDate || null,
         },
         issuer: {
-            name: data.issuerName,
+            name: data.issuerName || "VeriChain Institution",
             website: data.issuerWebsite || "",
             wallet: data.issuerWallet,
         },

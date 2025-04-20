@@ -3,45 +3,45 @@
 @import 'tailwindcss/utilities';
 
 @layer base {
-  body {
-    @apply bg-white dark:bg-dark text-gray-900 dark:text-white;
-  }
+    body {
+        @apply bg-white dark:bg-dark text-gray-900 dark:text-white;
+    }
 
-  h1 {
-    @apply text-3xl font-bold mb-4;
-  }
+    h1 {
+        @apply text-3xl font-bold mb-4;
+    }
 
-  h2 {
-    @apply text-2xl font-semibold mb-3;
-  }
+    h2 {
+        @apply text-2xl font-semibold mb-3;
+    }
 
-  h3 {
-    @apply text-xl font-medium mb-2;
-  }
+    h3 {
+        @apply text-xl font-medium mb-2;
+    }
 
-  button {
-    @apply transition-all duration-200;
-  }
+    button {
+        @apply transition-all duration-200;
+    }
 }
 
 @layer components {
-  .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors;
-  }
+    .btn {
+        @apply px-4 py-2 rounded-md font-medium transition-colors;
+    }
 
-  .btn-primary {
-    @apply btn bg-primary text-white hover:bg-primary-dark;
-  }
+    .btn-primary {
+        @apply btn bg-primary text-white hover:bg-primary-dark;
+    }
 
-  .btn-secondary {
-    @apply btn bg-secondary text-dark hover:bg-secondary-dark;
-  }
+    .btn-secondary {
+        @apply btn bg-secondary text-dark hover:bg-secondary-dark;
+    }
 
-  .card {
-    @apply bg-white dark:bg-dark-light rounded-lg shadow-md p-6;
-  }
+    .card {
+        @apply bg-white dark:bg-dark-light rounded-lg shadow-md p-6;
+    }
 
-  .input {
-    @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-light text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary;
-  }
+    .input {
+        @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-light text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary;
+    }
 }

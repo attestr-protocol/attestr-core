@@ -1,160 +1,91 @@
-import Head from 'next/head';
+// pages/issue/index.js
 import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import IssueCertificateTemplate from '../../components/page-templates/IssueCertificateTemplate';
+import { useWalletContext } from '../../contexts/WalletContext';
+import { useCertificateContext } from '../../contexts/CertificateContext';
+import { formatCertificateMetadata, storeCertificateMetadata } from '../../utils/storage/ipfsStorage';
 
-export default function IssueCertificate() {
-    const [formData, setFormData] = useState({
-        recipientName: '',
-        recipientWallet: '',
-        credentialTitle: '',
-        issueDate: '',
-        expiryDate: '',
-        description: '',
-    });
+export default function IssuePage() {
+    const router = useRouter();
+    const { address, connect, disconnect } = useWalletContext();
+    const { issueNewCertificate, isLoading } = useCertificateContext();
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value,
-        });
-    };
+    const [issuanceSuccess, setIssuanceSuccess] = useState(null);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // This will be connected to blockchain functionality later
-        console.log('Certificate data to issue:', formData);
-        alert('Certificate issuance functionality will be implemented in the next phase');
+    // Handle form submission
+    const handleSubmit = async (formData) => {
+        try {
+            // Add issuer wallet address to form data
+            const certificateData = {
+                ...formData,
+                issuerWallet: address,
+                issuerName: 'VeriChain Institution', // Would be pulled from user profile in a real app
+            };
+
+            const result = await issueNewCertificate(certificateData);
+
+            if (result.success) {
+                setIssuanceSuccess(result);
+
+                // Redirect to the certificate detail page after successful issuance
+                setTimeout(() => {
+                    router.push(`/verify/${result.certificateId}`);
+                }, 2000);
+            } else {
+                setIssuanceSuccess({
+                    success: false,
+                    error: result.error || 'Failed to issue certificate'
+                });
+            }
+
+            return result;
+        } catch (error) {
+            console.error('Error issuing certificate:', error);
+            setIssuanceSuccess({
+                success: false,
+                error: error.message || 'An unexpected error occurred'
+            });
+            return { success: false, error: error.message };
+        }
     };
 
     return (
-        <div>
+        <>
             <Head>
                 <title>Issue Certificate | VeriChain</title>
                 <meta name="description" content="Issue new blockchain-verified credentials" />
             </Head>
 
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold">Issue New Certificate</h1>
-                <p className="text-gray-600 dark:text-gray-300">
-                    Create and issue a new blockchain-verified credential for an individual.
-                </p>
-            </div>
+            <IssueCertificateTemplate
+                address={address}
+                isSubmitting={isLoading}
+                onWalletConnect={connect}
+                onWalletDisconnect={disconnect}
+                onSubmit={handleSubmit}
+            />
 
-            <div className="card max-w-3xl mx-auto">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Success/Error notification */}
+            {issuanceSuccess && (
+                <div className={`fixed bottom-6 right-6 p-4 rounded-lg shadow-lg ${issuanceSuccess.success
+                        ? 'bg-green-100 border border-green-500 text-green-700 dark:bg-green-900 dark:text-green-300'
+                        : 'bg-red-100 border border-red-500 text-red-700 dark:bg-red-900 dark:text-red-300'
+                    }`}>
+                    {issuanceSuccess.success ? (
                         <div>
-                            <label htmlFor="recipientName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Recipient Name
-                            </label>
-                            <input
-                                type="text"
-                                id="recipientName"
-                                name="recipientName"
-                                value={formData.recipientName}
-                                onChange={handleChange}
-                                className="input"
-                                required
-                            />
+                            <h3 className="font-bold mb-1">Certificate Issued Successfully</h3>
+                            <p>Certificate ID: {issuanceSuccess.certificateId}</p>
+                            <p className="text-sm mt-1">Redirecting to certificate details...</p>
                         </div>
-
+                    ) : (
                         <div>
-                            <label htmlFor="recipientWallet" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Recipient Wallet Address
-                            </label>
-                            <input
-                                type="text"
-                                id="recipientWallet"
-                                name="recipientWallet"
-                                value={formData.recipientWallet}
-                                onChange={handleChange}
-                                placeholder="0x..."
-                                className="input"
-                                required
-                            />
+                            <h3 className="font-bold mb-1">Error Issuing Certificate</h3>
+                            <p>{issuanceSuccess.error}</p>
                         </div>
-
-                        <div>
-                            <label htmlFor="credentialTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Credential Title
-                            </label>
-                            <input
-                                type="text"
-                                id="credentialTitle"
-                                name="credentialTitle"
-                                value={formData.credentialTitle}
-                                onChange={handleChange}
-                                placeholder="e.g., Bachelor of Computer Science"
-                                className="input"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="issueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Issue Date
-                            </label>
-                            <input
-                                type="date"
-                                id="issueDate"
-                                name="issueDate"
-                                value={formData.issueDate}
-                                onChange={handleChange}
-                                className="input"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Expiry Date (Optional)
-                            </label>
-                            <input
-                                type="date"
-                                id="expiryDate"
-                                name="expiryDate"
-                                value={formData.expiryDate}
-                                onChange={handleChange}
-                                className="input"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Credential Description
-                        </label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            rows={4}
-                            className="input"
-                            placeholder="Additional details about the credential..."
-                        />
-                    </div>
-
-                    <div className="flex items-center">
-                        <input
-                            id="terms"
-                            name="terms"
-                            type="checkbox"
-                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                            required
-                        />
-                        <label htmlFor="terms" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                            I confirm that I am authorized to issue this credential and that all information is accurate
-                        </label>
-                    </div>
-
-                    <div className="text-center pt-4">
-                        <button type="submit" className="btn-primary w-full md:w-auto">
-                            Issue Certificate
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                    )}
+                </div>
+            )}
+        </>
     );
 }

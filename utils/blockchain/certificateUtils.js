@@ -1,26 +1,13 @@
 import { ethers } from 'ethers';
-
-// Contract ABIs - will be replaced with actual compiled ABIs
 import CertificateIssuanceABI from '../../contracts/abis/CertificateIssuance.json';
 import VerificationABI from '../../contracts/abis/Verification.json';
+import { getProvider } from './walletUtils';
+import { retrieveCertificateMetadata } from '../storage/ipfsStorage';
 
 // Contract addresses - will be updated after deployment
 const CONTRACT_ADDRESSES = {
     certificateIssuance: process.env.NEXT_PUBLIC_CERTIFICATE_CONTRACT_ADDRESS,
     verification: process.env.NEXT_PUBLIC_VERIFICATION_CONTRACT_ADDRESS,
-};
-
-/**
- * Get an ethers provider instance
- * @returns {ethers.providers.Web3Provider} Provider instance
- */
-export const getProvider = () => {
-    // Check if window is defined (browser environment)
-    if (typeof window !== 'undefined' && window.ethereum) {
-        return new ethers.providers.Web3Provider(window.ethereum);
-    }
-    // Fallback to a JSON-RPC provider (for server-side)
-    return new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
 };
 
 /**
@@ -111,11 +98,13 @@ export const verifyCertificate = async (certificateId) => {
         const [isValid, issuer, issueDate, expiryDate] = verificationResult;
 
         // If valid, get the full certificate details
-        if (isValid) {
-            const certificateDetails = await certContract.getCertificate(certificateId);
-            const [issuerAddr, recipient, metadataURI, issueDateValue, expiryDateValue, revoked] = certificateDetails;
+        let certificateDetails = { success: false };
 
-            return {
+        try {
+            const details = await certContract.getCertificate(certificateId);
+            const [issuerAddr, recipient, metadataURI, issueDateValue, expiryDateValue, revoked] = details;
+
+            certificateDetails = {
                 success: true,
                 isValid,
                 certificateId,
@@ -128,20 +117,35 @@ export const verifyCertificate = async (certificateId) => {
                     : null,
                 revoked,
             };
+
+            // Try to fetch metadata if available
+            if (metadataURI) {
+                try {
+                    const metadata = await retrieveCertificateMetadata(metadataURI);
+                    certificateDetails.metadata = metadata;
+                } catch (metadataError) {
+                    console.warn('Could not fetch metadata:', metadataError);
+                    // Continue even if metadata fetch fails
+                }
+            }
+        } catch (detailsError) {
+            console.error('Error getting certificate details:', detailsError);
+            // Return basic verification result if details fetch fails
+            return {
+                success: true,
+                isValid,
+                certificateId,
+                issuer,
+                issueDate: issueDate.toNumber() > 0
+                    ? new Date(issueDate.toNumber() * 1000).toISOString()
+                    : null,
+                expiryDate: expiryDate.toNumber() > 0
+                    ? new Date(expiryDate.toNumber() * 1000).toISOString()
+                    : null,
+            };
         }
 
-        return {
-            success: true,
-            isValid,
-            certificateId,
-            issuer,
-            issueDate: issueDate.toNumber() > 0
-                ? new Date(issueDate.toNumber() * 1000).toISOString()
-                : null,
-            expiryDate: expiryDate.toNumber() > 0
-                ? new Date(expiryDate.toNumber() * 1000).toISOString()
-                : null,
-        };
+        return certificateDetails;
     } catch (error) {
         console.error('Error verifying certificate:', error);
         return {
@@ -188,7 +192,7 @@ export const recordVerification = async (certificateId) => {
 /**
  * Get certificates for a recipient
  * @param {string} address - Recipient wallet address
- * @returns {Promise<Array>} Array of certificate IDs
+ * @returns {Promise<Array>} Array of certificate objects
  */
 export const getCertificatesForRecipient = async (address) => {
     try {
@@ -212,7 +216,7 @@ export const getCertificatesForRecipient = async (address) => {
 /**
  * Get certificates issued by an institution
  * @param {string} address - Issuer wallet address
- * @returns {Promise<Array>} Array of certificate IDs
+ * @returns {Promise<Array>} Array of certificate objects
  */
 export const getCertificatesForIssuer = async (address) => {
     try {
