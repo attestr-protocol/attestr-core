@@ -192,7 +192,7 @@ const ProfileTemplate = ({
                         ) : (
                             <Card variant="flat" className="text-center py-12">
                                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                                    You don't have any credentials yet.
+                                    You don&apos;t have any credentials yet.
                                 </p>
                                 <Button
                                     variant="primary"
