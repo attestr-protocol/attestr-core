@@ -2,9 +2,9 @@ import { ethers } from 'ethers';
 import CertificateIssuanceABI from '../../contracts/abis/CertificateIssuance.json';
 import VerificationABI from '../../contracts/abis/Verification.json';
 import { getProvider } from './walletUtils';
-import { retrieveCertificateMetadata } from '../storage/ipfsStorage';
+import { formatCertificateMetadata, retrieveCertificateMetadata } from '../storage/ipfsStorage';
 
-// Contract addresses - will be updated after deployment
+// Contract addresses from environment variables
 const CONTRACT_ADDRESSES = {
     certificateIssuance: process.env.NEXT_PUBLIC_CERTIFICATE_CONTRACT_ADDRESS,
     verification: process.env.NEXT_PUBLIC_VERIFICATION_CONTRACT_ADDRESS,
@@ -17,27 +17,32 @@ const CONTRACT_ADDRESSES = {
  * @returns {ethers.Contract} Contract instance
  */
 export const getContract = async (contractName, withSigner = false) => {
-    const provider = getProvider();
+    try {
+        const provider = getProvider();
 
-    // Get the contract address
-    const address = CONTRACT_ADDRESSES[contractName];
-    if (!address) {
-        throw new Error(`Contract address not found for ${contractName}`);
+        // Get the contract address
+        const address = CONTRACT_ADDRESSES[contractName];
+        if (!address) {
+            throw new Error(`Contract address not found for ${contractName}`);
+        }
+
+        // Get the contract ABI
+        const abi = contractName === 'certificateIssuance'
+            ? CertificateIssuanceABI
+            : VerificationABI;
+
+        // Connect with or without a signer
+        if (withSigner) {
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            return new ethers.Contract(address, abi, signer);
+        }
+
+        return new ethers.Contract(address, abi, provider);
+    } catch (error) {
+        console.error(`Error getting ${contractName} contract:`, error);
+        throw error;
     }
-
-    // Get the contract ABI
-    const abi = contractName === 'certificateIssuance'
-        ? CertificateIssuanceABI
-        : VerificationABI;
-
-    // Connect with or without a signer
-    if (withSigner) {
-        await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner();
-        return new ethers.Contract(address, abi, signer);
-    }
-
-    return new ethers.Contract(address, abi, provider);
 };
 
 /**
@@ -56,6 +61,12 @@ export const issueCertificate = async (certificateData, metadataURI) => {
             ? Math.floor(new Date(certificateData.expiryDate).getTime() / 1000)
             : 0;
 
+        console.log("Issuing certificate with params:", {
+            recipient,
+            metadataURI,
+            expiryDate
+        });
+
         // Issue certificate
         const tx = await contract.issueCertificate(
             recipient,
@@ -68,6 +79,10 @@ export const issueCertificate = async (certificateData, metadataURI) => {
 
         // Find the CertificateIssued event in the logs to get the certificate ID
         const event = receipt.events.find(e => e.event === 'CertificateIssued');
+        if (!event) {
+            throw new Error('Certificate issued but event not found in transaction receipt');
+        }
+
         const certificateId = event.args.id;
 
         return {
@@ -79,7 +94,7 @@ export const issueCertificate = async (certificateData, metadataURI) => {
         console.error('Error issuing certificate:', error);
         return {
             success: false,
-            error: error.message,
+            error: error.message || 'Failed to issue certificate',
         };
     }
 };
@@ -151,7 +166,7 @@ export const verifyCertificate = async (certificateId) => {
         return {
             success: false,
             isValid: false,
-            error: error.message,
+            error: error.message || 'Failed to verify certificate',
         };
     }
 };
@@ -171,6 +186,10 @@ export const recordVerification = async (certificateId) => {
 
         // Find the CertificateVerified event in the logs
         const event = receipt.events.find(e => e.event === 'CertificateVerified');
+        if (!event) {
+            throw new Error('Verification recorded but event not found in transaction receipt');
+        }
+
         const { verificationId, isValid } = event.args;
 
         return {
@@ -184,7 +203,7 @@ export const recordVerification = async (certificateId) => {
         console.error('Error recording verification:', error);
         return {
             success: false,
-            error: error.message,
+            error: error.message || 'Failed to record verification',
         };
     }
 };
@@ -231,7 +250,8 @@ export const getCertificatesForIssuer = async (address) => {
         );
 
         return certificates.filter(cert => cert.success);
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Error getting certificates:', error);
         return [];
     }

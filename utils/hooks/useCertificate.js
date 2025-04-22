@@ -8,6 +8,7 @@ import {
     formatCertificateMetadata,
     storeCertificateMetadata
 } from '../storage/ipfsStorage';
+import { getProvider } from '../blockchain/walletUtils';
 
 /**
  * Custom hook for certificate operations
@@ -23,10 +24,18 @@ export const useCertificate = () => {
         setError(null);
 
         try {
+            // Get current wallet if not provided
+            let issuerWallet = certificateData.issuerWallet;
+            if (!issuerWallet) {
+                const provider = getProvider();
+                const signer = provider.getSigner();
+                issuerWallet = await signer.getAddress();
+            }
+
             // Format metadata
             const metadata = formatCertificateMetadata({
                 ...certificateData,
-                issuerWallet: certificateData.issuerWallet || window.ethereum.selectedAddress,
+                issuerWallet,
             });
 
             // Store metadata on IPFS
@@ -39,6 +48,9 @@ export const useCertificate = () => {
             if (!result.success) {
                 throw new Error(result.error || 'Failed to issue certificate');
             }
+
+            // Add metadata to the result for easier access
+            result.metadata = metadata;
 
             return result;
         } catch (error) {
@@ -78,7 +90,12 @@ export const useCertificate = () => {
         setError(null);
 
         try {
-            return await getCertificatesForRecipient(walletAddress);
+            if (!walletAddress) {
+                throw new Error('Wallet address is required');
+            }
+
+            const certificates = await getCertificatesForRecipient(walletAddress);
+            return certificates;
         } catch (error) {
             console.error('Error getting certificates:', error);
             setError(error.message || 'An error occurred while fetching certificates');
@@ -96,4 +113,3 @@ export const useCertificate = () => {
         error,
     };
 };
-

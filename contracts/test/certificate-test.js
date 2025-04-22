@@ -52,4 +52,28 @@ describe("VeriChain", function () {
         expect(certDetails.recipient).to.equal(recipient.address);
         expect(certDetails.metadataURI).to.equal(metadataURI);
     });
+
+    it("Should allow recording verifications of a certificate", async function () {
+        // Issue a certificate first
+        const metadataURI = "ipfs://QmTest";
+        const tx = await certificateContract.connect(issuer).issueCertificate(
+            recipient.address,
+            metadataURI,
+            0
+        );
+        const receipt = await tx.wait();
+        const event = receipt.events.find(e => e.event === 'CertificateIssued');
+        const certificateId = event.args.id;
+
+        // Now verify the certificate
+        const verifierContract = verificationContract.connect(verifier);
+        const verifyTx = await verifierContract.verifyCertificate(certificateId);
+        const verifyReceipt = await verifyTx.wait();
+
+        // Check that verification event was emitted
+        const verifyEvent = verifyReceipt.events.find(e => e.event === 'CertificateVerified');
+        expect(verifyEvent).to.not.be.undefined;
+        expect(verifyEvent.args.certificateId).to.equal(certificateId);
+        expect(verifyEvent.args.verifier).to.equal(verifier.address);
+    });
 });

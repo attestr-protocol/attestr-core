@@ -1,4 +1,3 @@
-// utils/blockchain/walletUtils.js
 import { ethers } from 'ethers';
 
 /**
@@ -16,10 +15,27 @@ export const isMetaMaskInstalled = () => {
 export const getProvider = () => {
     // Check if window is defined (browser environment)
     if (typeof window !== 'undefined' && window.ethereum) {
-        return new ethers.providers.Web3Provider(window.ethereum);
+        // When using with MetaMask, make sure to handle changes correctly
+        const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+
+        // Prompt the user to connect their wallet before using it for transactions
+        const requestAccounts = async () => {
+            try {
+                await provider.send("eth_requestAccounts", []);
+            } catch (error) {
+                console.error("User denied account access", error);
+            }
+        };
+
+        // Request accounts by default
+        requestAccounts();
+
+        return provider;
     }
-    // Fallback to a JSON-RPC provider (for server-side)
-    return new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+
+    // Fallback to a JSON-RPC provider (for server-side rendering or if MetaMask is not available)
+    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://rpc-mumbai.maticvigil.com";
+    return new ethers.providers.JsonRpcProvider(rpcUrl);
 };
 
 /**
@@ -31,11 +47,18 @@ export const isSupportedNetwork = async () => {
         return false;
     }
 
-    const provider = getProvider();
-    const { chainId } = await provider.getNetwork();
+    try {
+        const provider = getProvider();
+        const { chainId } = await provider.getNetwork();
 
-    // Mumbai testnet chainId is 80001
-    return chainId === 80001;
+        // Mumbai testnet chainId is 80001
+        const targetChainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80001', 10);
+
+        return chainId === targetChainId;
+    } catch (error) {
+        console.error("Error checking network:", error);
+        return false;
+    }
 };
 
 /**
@@ -84,3 +107,48 @@ export const switchToMumbaiNetwork = async () => {
     }
 };
 
+/**
+ * Get the current connected account from MetaMask
+ * @returns {Promise<string|null>} Ethereum address or null
+ */
+export const getCurrentAccount = async () => {
+    if (!isMetaMaskInstalled()) {
+        return null;
+    }
+
+    try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        return accounts.length > 0 ? accounts[0] : null;
+    } catch (error) {
+        console.error('Error getting current account:', error);
+        return null;
+    }
+};
+
+/**
+ * Listen for account changes
+ * @param {Function} callback - Function to call when accounts change
+ * @returns {Function} Function to remove the listener
+ */
+export const onAccountsChanged = (callback) => {
+    if (!isMetaMaskInstalled()) {
+        return () => { };
+    }
+
+    window.ethereum.on('accountsChanged', callback);
+    return () => window.ethereum.removeListener('accountsChanged', callback);
+};
+
+/**
+ * Listen for chain changes
+ * @param {Function} callback - Function to call when chain changes
+ * @returns {Function} Function to remove the listener
+ */
+export const onChainChanged = (callback) => {
+    if (!isMetaMaskInstalled()) {
+        return () => { };
+    }
+
+    window.ethereum.on('chainChanged', callback);
+    return () => window.ethereum.removeListener('chainChanged', callback);
+};

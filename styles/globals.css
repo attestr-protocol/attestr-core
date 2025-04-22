@@ -3,45 +3,238 @@
 @import 'tailwindcss/utilities';
 
 @layer base {
+    html {
+        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
     body {
-        @apply bg-white dark:bg-dark text-gray-900 dark:text-white;
+        @apply bg-white dark:bg-dark text-gray-900 dark:text-white transition-colors duration-200;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-semibold leading-tight tracking-tight text-gray-900 dark:text-white;
     }
 
     h1 {
-        @apply text-3xl font-bold mb-4;
+        @apply text-4xl md:text-5xl mb-6;
     }
 
     h2 {
-        @apply text-2xl font-semibold mb-3;
+        @apply text-3xl md:text-4xl mb-4;
     }
 
     h3 {
-        @apply text-xl font-medium mb-2;
+        @apply text-2xl md:text-3xl mb-3;
+    }
+
+    h4 {
+        @apply text-xl md:text-2xl mb-2;
+    }
+
+    h5 {
+        @apply text-lg md:text-xl mb-2;
+    }
+
+    h6 {
+        @apply text-base md:text-lg mb-2;
+    }
+
+    p {
+        @apply leading-relaxed mb-4 text-gray-700 dark:text-gray-300;
+    }
+
+    a {
+        @apply text-primary dark:text-primary-light hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary;
     }
 
     button {
         @apply transition-all duration-200;
     }
+
+    /* Focus styles for better accessibility */
+    :focus-visible {
+        @apply outline-none ring-2 ring-primary ring-offset-2 dark:ring-offset-dark;
+    }
 }
 
 @layer components {
+
+    /* Button styles */
     .btn {
-        @apply px-4 py-2 rounded-md font-medium transition-colors;
+        @apply px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center focus:outline-none shadow-sm;
     }
 
     .btn-primary {
-        @apply btn bg-primary text-white hover:bg-primary-dark;
+        @apply btn bg-primary text-white hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark;
     }
 
     .btn-secondary {
-        @apply btn bg-secondary text-dark hover:bg-secondary-dark;
+        @apply btn bg-secondary text-dark hover:bg-secondary-dark dark:bg-secondary dark:hover:bg-secondary-dark focus:ring-2 focus:ring-secondary focus:ring-offset-2 dark:focus:ring-offset-dark;
     }
 
+    .btn-outline {
+        @apply btn bg-transparent border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-dark;
+    }
+
+    .btn-ghost {
+        @apply btn bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-dark shadow-none;
+    }
+
+    .btn-danger {
+        @apply btn bg-error text-white hover:bg-error-dark dark:bg-error dark:hover:bg-error-dark focus:ring-2 focus:ring-error focus:ring-offset-2 dark:focus:ring-offset-dark;
+    }
+
+    .btn-success {
+        @apply btn bg-success text-white hover:bg-success-dark dark:bg-success dark:hover:bg-success-dark focus:ring-2 focus:ring-success focus:ring-offset-2 dark:focus:ring-offset-dark;
+    }
+
+    .btn-sm {
+        @apply px-3 py-1.5 text-sm rounded;
+    }
+
+    .btn-lg {
+        @apply px-6 py-3 text-lg rounded-md;
+    }
+
+    .btn-icon {
+        @apply p-2 rounded-full;
+    }
+
+    /* Disabled button state */
+    .btn:disabled,
+    .btn[disabled] {
+        @apply opacity-50 cursor-not-allowed shadow-none;
+    }
+
+    /* Card styles */
     .card {
-        @apply bg-white dark:bg-dark-light rounded-lg shadow-md p-6;
+        @apply bg-white dark:bg-dark-light rounded-lg shadow-md p-6 transition-all duration-200;
     }
 
+    .card-hover {
+        @apply hover:shadow-lg;
+    }
+
+    .card-flat {
+        @apply bg-white dark:bg-dark-light rounded-lg p-6 border border-gray-200 dark:border-gray-700;
+    }
+
+    /* Form input styles */
     .input {
-        @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-light text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary;
+        @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-light text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-light focus:border-primary dark:focus:border-primary-light placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-200;
+    }
+
+    .input-error {
+        @apply border-error focus:ring-error focus:border-error dark:border-error dark:focus:ring-error dark:focus:border-error;
+    }
+
+    /* Badge styles */
+    .badge {
+        @apply inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-200;
+    }
+
+    .badge-primary {
+        @apply badge bg-primary-light text-primary-dark dark:bg-primary-dark dark:text-primary-light;
+    }
+
+    .badge-secondary {
+        @apply badge bg-secondary-light text-secondary-dark dark:bg-secondary-dark dark:text-secondary-light;
+    }
+
+    .badge-success {
+        @apply badge bg-success-light text-success-dark dark:bg-success-dark dark:text-success-light;
+    }
+
+    .badge-error {
+        @apply badge bg-error-light text-error-dark dark:bg-error-dark dark:text-error-light;
+    }
+
+    .badge-warning {
+        @apply badge bg-warning-light text-warning-dark dark:bg-warning-dark dark:text-warning-light;
+    }
+
+    .badge-info {
+        @apply badge bg-info-light text-info-dark dark:bg-info-dark dark:text-info-light;
+    }
+
+    /* Status indicators */
+    .status-dot {
+        @apply h-2.5 w-2.5 rounded-full inline-block;
+    }
+
+    .status-dot-success {
+        @apply status-dot bg-success;
+    }
+
+    .status-dot-error {
+        @apply status-dot bg-error;
+    }
+
+    .status-dot-warning {
+        @apply status-dot bg-warning;
+    }
+
+    .status-dot-info {
+        @apply status-dot bg-info;
+    }
+
+    /* Animation utilities */
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .5;
+        }
+    }
+
+    /* Loading spinner */
+    .spinner {
+        @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite] text-primary dark:text-primary-light;
+    }
+
+    .spinner-lg {
+        @apply h-8 w-8 border-3;
+    }
+
+    /* Fade transitions */
+    .fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Container with max-width */
+    .container-fluid {
+        @apply w-full px-4 sm:px-6 lg:px-8 mx-auto;
+    }
+
+    /* Typography utilities */
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    .text-pretty {
+        text-wrap: pretty;
     }
 }

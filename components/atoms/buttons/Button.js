@@ -1,60 +1,83 @@
 import React from 'react';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 /**
- * Basic button component with variants
+ * Enhanced button component with variants
  * 
  * @param {Object} props
- * @param {string} props.variant - 'primary', 'secondary', or any custom variant
+ * @param {string} props.variant - 'primary', 'secondary', 'outline', 'ghost', 'danger', 'success'
+ * @param {string} props.size - 'sm', 'md' (default), 'lg'
  * @param {boolean} props.fullWidth - Whether the button should take full width
  * @param {boolean} props.disabled - Whether the button is disabled
+ * @param {boolean} props.isLoading - Whether to show loading state
+ * @param {React.ReactNode} props.startIcon - Icon component to display before text
+ * @param {React.ReactNode} props.endIcon - Icon component to display after text
  */
 const Button = ({
     children,
     variant = 'primary',
+    size = 'md',
     fullWidth = false,
     disabled = false,
+    isLoading = false,
+    startIcon = null,
+    endIcon = null,
     className = '',
     ...props
 }) => {
-    // Base button classes
-    const baseClasses = 'px-4 py-2 rounded-md font-medium transition-colors';
+    const { darkMode } = useTheme();
 
-    // Variant-specific classes
+    // Size classes
+    const sizeClasses = {
+        sm: 'btn-sm',
+        md: '',
+        lg: 'btn-lg',
+    };
+
+    // Variant classes (already defined in globals.css)
     const variantClasses = {
-        primary: 'bg-primary text-white hover:bg-primary-dark',
-        secondary: 'bg-secondary text-dark hover:bg-secondary-dark',
-        outline: 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light',
-        danger: 'bg-red-500 text-white hover:bg-red-600',
-        ghost: 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light',
+        primary: 'btn-primary',
+        secondary: 'btn-secondary',
+        outline: 'btn-outline',
+        ghost: 'btn-ghost',
+        danger: 'btn-danger',
+        success: 'btn-success',
     };
 
     // Width classes
-    const widthClasses = fullWidth ? 'w-full' : '';
-
-    // Disabled classes
-    const disabledClasses = disabled
-        ? 'opacity-50 cursor-not-allowed'
-        : 'cursor-pointer';
+    const widthClass = fullWidth ? 'w-full' : '';
 
     // Combine all classes
-    const btnClasses = [
-        baseClasses,
+    const buttonClasses = [
+        'btn',
         variantClasses[variant] || variantClasses.primary,
-        widthClasses,
-        disabledClasses,
+        sizeClasses[size] || '',
+        widthClass,
+        disabled || isLoading ? 'opacity-50 cursor-not-allowed' : '',
         className
-    ].join(' ');
+    ].filter(Boolean).join(' ');
 
     return (
         <button
-            className={btnClasses}
-            disabled={disabled}
+            className={buttonClasses}
+            disabled={disabled || isLoading}
             {...props}
         >
+            {isLoading && (
+                <span className="spinner mr-2" aria-hidden="true"></span>
+            )}
+
+            {!isLoading && startIcon && (
+                <span className="mr-2">{startIcon}</span>
+            )}
+
             {children}
+
+            {!isLoading && endIcon && (
+                <span className="ml-2">{endIcon}</span>
+            )}
         </button>
     );
 };
 
 export default Button;
-

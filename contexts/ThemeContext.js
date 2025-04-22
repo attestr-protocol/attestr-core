@@ -1,5 +1,6 @@
 // contexts/ThemeContext.js
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import theme from '../styles/theme';
 
 // Create context
 const ThemeContext = createContext(null);
@@ -7,6 +8,15 @@ const ThemeContext = createContext(null);
 // Provider component
 export function ThemeProvider({ children }) {
     const [darkMode, setDarkMode] = useState(false);
+
+    // Get current theme values based on mode
+    const currentTheme = useMemo(() => {
+        return {
+            ...theme,
+            colors: darkMode ? theme.colors.dark : theme.colors.light,
+            isDark: darkMode,
+        };
+    }, [darkMode]);
 
     // Initialize theme from local storage or system preference
     useEffect(() => {
@@ -57,11 +67,30 @@ export function ThemeProvider({ children }) {
         }
     }, []);
 
+    // Get a specific color value
+    const getColor = useCallback((colorPath) => {
+        if (!colorPath) return null;
+
+        const parts = colorPath.split('.');
+        let colorValue = currentTheme.colors;
+
+        for (const part of parts) {
+            if (colorValue[part] === undefined) {
+                return null;
+            }
+            colorValue = colorValue[part];
+        }
+
+        return colorValue;
+    }, [currentTheme]);
+
     const value = useMemo(() => ({
+        theme: currentTheme,
         darkMode,
         toggleDarkMode,
         setThemeMode,
-    }), [darkMode, toggleDarkMode, setThemeMode]);
+        getColor,
+    }), [currentTheme, darkMode, toggleDarkMode, setThemeMode, getColor]);
 
     return (
         <ThemeContext.Provider value={value}>
@@ -71,11 +100,11 @@ export function ThemeProvider({ children }) {
 }
 
 // Hook for components to consume the context
-export function useThemeContext() {
+export function useTheme() {
     const context = useContext(ThemeContext);
 
     if (!context) {
-        throw new Error('useThemeContext must be used within a ThemeProvider');
+        throw new Error('useTheme must be used within a ThemeProvider');
     }
 
     return context;

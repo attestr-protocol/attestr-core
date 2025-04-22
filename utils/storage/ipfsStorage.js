@@ -8,7 +8,17 @@ let client;
  * @param {string} token - web3.storage API token
  */
 export function initializeStorage(token) {
-    client = new Web3Storage({ token });
+    if (!token) {
+        console.warn('No Web3.Storage token provided. IPFS storage will be unavailable.');
+        return;
+    }
+
+    try {
+        client = new Web3Storage({ token });
+        console.log('Web3.Storage initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize Web3.Storage:', error);
+    }
 }
 
 /**
@@ -22,6 +32,8 @@ export async function storeCertificateMetadata(certificateData) {
     }
 
     try {
+        console.log('Storing certificate metadata:', certificateData);
+
         // Create a JSON blob from the certificate data
         const blob = new Blob([JSON.stringify(certificateData)], { type: 'application/json' });
 
@@ -31,7 +43,9 @@ export async function storeCertificateMetadata(certificateData) {
         ];
 
         // Upload to IPFS via web3.storage
-        return await client.put(files);
+        const cid = await client.put(files);
+        console.log('Stored certificate metadata with CID:', cid);
+        return cid;
     } catch (error) {
         console.error('Error storing certificate metadata:', error);
         throw error;
@@ -51,16 +65,39 @@ export async function retrieveCertificateMetadata(cid) {
     try {
         // Clean the CID if it includes the ipfs:// prefix
         const cleanCid = cid.replace('ipfs://', '');
+        console.log('Retrieving metadata for CID:', cleanCid);
 
-        // Get the data from IPFS
-        const res = await fetch(`https://${cleanCid}.ipfs.dweb.link/certificate-metadata.json`);
+        // Get the data from IPFS - use multiple gateways for redundancy
+        const gateways = [
+            `https://${cleanCid}.ipfs.dweb.link/certificate-metadata.json`,
+            `https://ipfs.io/ipfs/${cleanCid}/certificate-metadata.json`,
+            `https://gateway.pinata.cloud/ipfs/${cleanCid}/certificate-metadata.json`
+        ];
 
-        if (!res.ok) {
-            throw new Error(`Failed to fetch data: ${res.status} ${res.statusText}`);
+        let response = null;
+        let errorMessages = [];
+
+        // Try each gateway until one works
+        for (const gateway of gateways) {
+            try {
+                const res = await fetch(gateway, { cache: 'no-store' });
+                if (res.ok) {
+                    response = res;
+                    break;
+                } else {
+                    errorMessages.push(`Gateway ${gateway} returned ${res.status}`);
+                }
+            } catch (err) {
+                errorMessages.push(`Gateway ${gateway} error: ${err.message}`);
+            }
+        }
+
+        if (!response) {
+            throw new Error(`Failed to fetch metadata from all gateways: ${errorMessages.join(', ')}`);
         }
 
         // Parse the JSON data
-        return await res.json();
+        return await response.json();
     } catch (error) {
         console.error('Error retrieving certificate metadata:', error);
         throw error;

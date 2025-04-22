@@ -1,5 +1,6 @@
 // components/molecules/cards/InfoCard.js
 import React from 'react';
+import Card from './Card';
 
 /**
  * Information card with title and optional icon
@@ -9,26 +10,33 @@ import React from 'react';
  * @param {React.ReactNode} props.icon - Icon component
  * @param {React.ReactNode} props.children - Card content
  * @param {React.ReactNode} props.footer - Card footer
+ * @param {string} props.variant - Card variant (passed to Card component)
+ * @param {string} props.color - Card color (passed to Card component)
+ * @param {boolean} props.hover - Whether to add hover effect
  */
 const InfoCard = ({
     title,
     icon,
     children,
     footer,
+    variant = 'default',
+    color = 'primary',
+    hover = true,
     className = '',
     ...props
 }) => {
-    const cardClasses = [
-        'card',
-        className
-    ].join(' ');
-
     return (
-        <div className={cardClasses} {...props}>
+        <Card
+            variant={variant}
+            color={color}
+            hover={hover}
+            className={className}
+            {...props}
+        >
             {(title || icon) && (
                 <div className="flex items-center mb-4">
                     {icon && (
-                        <div className="mr-3 text-primary">
+                        <div className={`mr-3 text-${color} dark:text-${color}-light`}>
                             {icon}
                         </div>
                     )}
@@ -38,7 +46,7 @@ const InfoCard = ({
                 </div>
             )}
 
-            <div>
+            <div className="mb-4">
                 {children}
             </div>
 
@@ -47,9 +55,8 @@ const InfoCard = ({
                     {footer}
                 </div>
             )}
-        </div>
+        </Card>
     );
 };
 
 export default InfoCard;
-

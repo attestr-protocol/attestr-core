@@ -1,160 +1,302 @@
+import React from 'react';
 import Head from 'next/head';
-import { useState } from 'react';
-import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react';
-import { DocumentDuplicateIcon, ShareIcon, ExternalLinkIcon } from '@heroicons/react/outline';
+import Link from 'next/link';
+import { useAddress, useMetamask } from '@thirdweb-dev/react';
+import Card from '../components/molecules/cards/Card';
+import Button from '../components/atoms/buttons/Button';
+import {
+  DocumentTextIcon,
+  CheckCircleIcon,
+  UserCircleIcon,
+  LockClosedIcon,
+  ShieldCheckIcon,
+  ClockIcon,
+  ChipIcon,
+  ArrowRightIcon
+} from '@heroicons/react/outline';
 
-export default function Profile() {
+export default function Home() {
   const address = useAddress();
   const connectWithMetamask = useMetamask();
-  const disconnectWallet = useDisconnect();
 
-  // Mock credentials data for UI demonstration
-  const [credentials, setCredentials] = useState([
+  // Features list
+  const features = [
     {
-      id: 'cert-123456789',
-      title: 'Bachelor of Computer Science',
-      issuer: 'University of Blockchain',
-      issueDate: '2025-03-15',
-      expiryDate: '2035-03-15',
-      status: 'valid',
+      name: 'Tamper-Proof Storage',
+      description: 'Certificates are immutable once issued and stored on the blockchain, ensuring they cannot be altered or forged.',
+      icon: LockClosedIcon,
     },
     {
-      id: 'cert-987654321',
-      title: 'Advanced Web3 Development',
-      issuer: 'Ethereum Academy',
-      issueDate: '2024-11-20',
-      expiryDate: null,
-      status: 'valid',
+      name: 'Instant Verification',
+      description: 'Verify the authenticity of any certificate in seconds without contacting the issuing institution.',
+      icon: CheckCircleIcon,
     },
     {
-      id: 'cert-567891234',
-      title: 'Blockchain Security Certificate',
-      issuer: 'CryptoSec Institute',
-      issueDate: '2024-07-10',
-      expiryDate: '2026-07-10',
-      status: 'valid',
+      name: 'Ownership Control',
+      description: 'Recipients maintain full control over their credentials and can share them selectively.',
+      icon: ShieldCheckIcon,
     },
-  ]);
+    {
+      name: 'Permanent Record',
+      description: 'Credentials remain accessible even if the issuing institution no longer exists.',
+      icon: ClockIcon,
+    },
+  ];
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
-  };
+  // Main actions
+  const actions = [
+    {
+      title: 'Issue Certificate',
+      description: 'Create and issue blockchain-backed certificates as a verified institution.',
+      icon: DocumentTextIcon,
+      href: '/issue',
+      color: 'primary',
+    },
+    {
+      title: 'Verify Certificate',
+      description: 'Instantly verify the authenticity of any certificate issued on VeriChain.',
+      icon: CheckCircleIcon,
+      href: '/verify',
+      color: 'secondary',
+    },
+    {
+      title: 'Manage Profile',
+      description: 'Access and manage your issued and received certificates.',
+      icon: UserCircleIcon,
+      href: '/profile',
+      color: 'success',
+    },
+  ];
 
   return (
-    <div>
+    <>
       <Head>
-        <title>Profile & Wallet | VeriChain</title>
-        <meta name="description" content="Manage your blockchain credentials" />
+        <title>VeriChain - Decentralized Credential Verification</title>
+        <meta name="description" content="Secure, blockchain-based verification of academic and professional credentials" />
       </Head>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Profile & Wallet</h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          Manage your blockchain identity and credentials.
-        </p>
-      </div>
-
-      {address ?
-        <div className="space-y-8">
-          {/* Wallet Information */}
-          <div className="card">
-            <h2 className="text-xl font-bold mb-4">Wallet Information</h2>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-              <div>
-                <div className="flex items-center">
-                  <p className="font-mono text-sm md:text-base truncate max-w-xs md:max-w-md">
-                    {address}
-                  </p>
-                  <button
-                    onClick={() => copyToClipboard(address)}
-                    className="ml-2 p-1 text-gray-500 hover:text-primary"
-                    title="Copy address"
-                  >
-                    <DocumentDuplicateIcon className="h-5 w-5" />
-                  </button>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">Connected with MetaMask</p>
-              </div>
-              <button onClick={disconnectWallet} className="btn-secondary mt-4 md:mt-0">
-                Disconnect
-              </button>
-            </div>
-          </div>
-
-          {/* Credentials */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">My Credentials</h2>
-              <span className="bg-primary-light text-primary-dark px-2 py-1 rounded-full text-sm">
-                {credentials.length} Credentials
-              </span>
-            </div>
-
-            {credentials.length > 0 ? (
-              <div className="space-y-4">
-                {credentials.map((credential) => (
-                  <div key={credential.id} className="card hover:shadow-lg transition-shadow">
-                    <div className="flex flex-col md:flex-row justify-between">
-                      <div>
-                        <h3 className="text-xl font-semibold">{credential.title}</h3>
-                        <p className="text-gray-600 dark:text-gray-300">{credential.issuer}</p>
-                        <div className="mt-2 flex items-center">
-                          <span className="text-sm text-gray-500">Issued: {credential.issueDate}</span>
-                          {credential.expiryDate && (
-                            <span className="text-sm text-gray-500 ml-4">
-                              Expires: {credential.expiryDate}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex mt-4 md:mt-0">
-                        <button
-                          className="p-2 text-gray-500 hover:text-primary"
-                          title="Share credential"
-                        >
-                          <ShareIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          className="p-2 text-gray-500 hover:text-primary ml-2"
-                          title="View on blockchain"
-                        >
-                          <ExternalLinkIcon className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                      <div className="flex items-center">
-                        <span className={`h-2 w-2 rounded-full ${credential.status === 'valid' ? 'bg-green-500' : 'bg-red-500'} mr-2`}></span>
-                        <span className="text-sm capitalize">{credential.status}</span>
-                      </div>
-                      <span className="text-sm font-mono text-gray-500 truncate max-w-xs">
-                        ID: {credential.id}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="card text-center py-8">
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  You do not have any credentials yet.
-                </p>
-                <button className="btn-primary">Request a Credential</button>
-              </div>
-            )}
+      {/* Hero Section */}
+      <section className="py-12 sm:py-16 md:py-20 -mt-6">
+        <div className="max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+            <span className="block">Securing Credentials with</span>
+            <span className="block text-primary dark:text-primary-light">Blockchain Technology</span>
+          </h1>
+          <p className="mt-6 text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            VeriChain provides a decentralized platform for issuing, verifying, and managing
+            academic and professional credentials with the security of blockchain.
+          </p>
+          <div className="mt-8 sm:mt-10 flex justify-center gap-4 flex-wrap">
+            {address ?
+              <Link href="/profile">
+                <Button
+                  size="lg"
+                  startIcon={<UserCircleIcon className="h-5 w-5" />}
+                >
+                  View Your Profile
+                </Button>
+              </Link>
+              :
+              <Button
+                size="lg"
+                onClick={connectWithMetamask}
+                startIcon={<ChipIcon className="h-5 w-5" />}
+              >
+                Connect Wallet
+              </Button>}
+            <Link href="/verify">
+              <Button
+                variant="secondary"
+                size="lg"
+                startIcon={<CheckCircleIcon className="h-5 w-5" />}
+              >
+                Verify a Certificate
+              </Button>
+            </Link>
           </div>
         </div>
-        :
-        <div className="card text-center py-10">
-          <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            Connect your wallet to view and manage your blockchain credentials.
-          </p>
-          <button onClick={connectWithMetamask} className="btn-primary">
-            Connect with MetaMask
-          </button>
-        </div>}
-    </div>
+      </section>
+
+      {/* Feature Section */}
+      <section className="py-12 bg-gray-50 dark:bg-dark-light rounded-2xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+              Why Use VeriChain?
+            </h2>
+            <p className="mt-4 max-w-2xl text-lg text-gray-600 dark:text-gray-300 mx-auto">
+              Our blockchain-based platform offers unmatched security and reliability for credential verification.
+            </p>
+          </div>
+
+          <div className="mt-12">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {features.map((feature) => (
+                <Card key={feature.name} variant="flat" hover className="text-center h-full">
+                  <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-md bg-primary bg-opacity-10 text-primary dark:text-primary-light">
+                    <feature.icon className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">{feature.name}</h3>
+                  <p className="mt-2 text-base text-gray-600 dark:text-gray-300">
+                    {feature.description}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Actions Section */}
+      <section className="py-12 mt-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white text-center mb-12">
+            Get Started with VeriChain
+          </h2>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {actions.map((action) => (
+              <Link key={action.title} href={action.href}>
+                <Card
+                  variant="outline"
+                  hover
+                  color={action.color}
+                  className="h-full border-l-4 border-l-transparent hover:border-l-4 hover:border-l-current"
+                >
+                  <div className={`h-12 w-12 rounded-md bg-${action.color} bg-opacity-10 flex items-center justify-center text-${action.color}`}>
+                    <action.icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+                    {action.title}
+                  </h3>
+                  <p className="mt-2 text-base text-gray-600 dark:text-gray-300">
+                    {action.description}
+                  </p>
+                  <div className="mt-4 flex items-center text-primary dark:text-primary-light font-medium">
+                    Get Started <ArrowRightIcon className="ml-1 h-4 w-4" />
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-12 mt-8 bg-gray-50 dark:bg-dark-light rounded-2xl">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+              How VeriChain Works
+            </h2>
+            <p className="mt-4 max-w-2xl text-lg text-gray-600 dark:text-gray-300 mx-auto">
+              Our platform uses blockchain technology to provide a transparent and secure credential verification system.
+            </p>
+          </div>
+
+          <div className="relative">
+            {/* Process steps */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Step 1 */}
+              <div className="relative">
+                <div className="flex items-center mb-4">
+                  <div className="z-10 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-xl">
+                    1
+                  </div>
+                  <div className="hidden md:block absolute left-10 top-5 h-0.5 w-full bg-gray-200 dark:bg-gray-700"></div>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Issue</h3>
+                <p className="mt-2 text-base text-gray-600 dark:text-gray-300">
+                  Authorized institutions issue digital credentials that are stored on the blockchain with a unique hash.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="relative">
+                <div className="flex items-center mb-4">
+                  <div className="z-10 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-xl">
+                    2
+                  </div>
+                  <div className="hidden md:block absolute left-10 top-5 h-0.5 w-full bg-gray-200 dark:bg-gray-700"></div>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Store</h3>
+                <p className="mt-2 text-base text-gray-600 dark:text-gray-300">
+                  Credentials are immutably stored on the blockchain, with metadata on IPFS for privacy and efficiency.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="relative">
+                <div className="flex items-center mb-4">
+                  <div className="z-10 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-xl">
+                    3
+                  </div>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Verify</h3>
+                <p className="mt-2 text-base text-gray-600 dark:text-gray-300">
+                  Anyone can instantly verify a credential's authenticity by checking its hash on the blockchain.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="py-16 mt-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card className="bg-primary dark:bg-primary-dark text-white overflow-hidden">
+            <div className="relative">
+              {/* Background pattern */}
+              <svg className="absolute right-0 top-0 opacity-10" width="404" height="392" fill="none" viewBox="0 0 404 392">
+                <defs>
+                  <pattern id="837c3e70-6c3a-44e6-8854-cc48c737b659" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <rect x="0" y="0" width="4" height="4" fill="currentColor" />
+                  </pattern>
+                </defs>
+                <rect width="404" height="392" fill="url(#837c3e70-6c3a-44e6-8854-cc48c737b659)" />
+              </svg>
+
+              <div className="relative z-10 px-4 py-10 sm:px-6 sm:py-12 md:py-16 text-center">
+                <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
+                  Ready to get started?
+                </h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-blue-100">
+                  Join the growing network of institutions and professionals using VeriChain to secure and verify credentials.
+                </p>
+                <div className="mt-8 flex justify-center gap-4 flex-wrap">
+                  {address ?
+                    <Link href="/issue">
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                      >
+                        Issue Certificate
+                      </Button>
+                    </Link>
+                    :
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={connectWithMetamask}
+                    >
+                      Connect Your Wallet
+                    </Button>}
+                  <Link href="/verify">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="bg-transparent text-white border-white hover:bg-white hover:bg-opacity-10"
+                    >
+                      Verify Certificate
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </section>
+    </>
   );
 }

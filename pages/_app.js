@@ -32,8 +32,10 @@ function MyApp({ Component, pageProps }) {
         <title>VeriChain - Decentralized Credential Verification</title>
         <meta name="description" content="Secure, blockchain-based verification of academic and professional credentials" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#2563EB" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
-      
+
       <ThirdwebProvider activeChain={Mumbai}>
         <ThemeProvider>
           <WalletProvider>

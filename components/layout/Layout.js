@@ -1,8 +1,9 @@
 // components/layout/Layout.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 /**
  * Main layout component for the application
@@ -10,45 +11,21 @@ import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react';
  * @param {Object} props
  * @param {React.ReactNode} props.children - Page content
  */
-const Layout = ({ children }) => {
+const Layout = ({ children, className = '', ...props }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
+
+    // Theme context
+    const { darkMode } = useTheme();
 
     // Wallet connection
     const address = useAddress();
     const connectWithMetamask = useMetamask();
     const disconnectWallet = useDisconnect();
 
-    useEffect(() => {
-        // Check if user prefers dark mode
-        if (localStorage.theme === 'dark' ||
-            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            setDarkMode(true);
-            document.documentElement.classList.add('dark');
-        } else {
-            setDarkMode(false);
-            document.documentElement.classList.remove('dark');
-        }
-    }, []);
-
-    const toggleDarkMode = () => {
-        if (darkMode) {
-            localStorage.theme = 'light';
-            document.documentElement.classList.remove('dark');
-            setDarkMode(false);
-        } else {
-            localStorage.theme = 'dark';
-            document.documentElement.classList.add('dark');
-            setDarkMode(true);
-        }
-    };
-
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-white dark:bg-dark text-gray-900 dark:text-white transition-colors duration-200">
             {/* Navigation */}
             <Header
-                darkMode={darkMode}
-                toggleDarkMode={toggleDarkMode}
                 isOpen={isOpen}
                 setIsOpen={setIsOpen}
                 walletAddress={address}
@@ -57,8 +34,10 @@ const Layout = ({ children }) => {
             />
 
             {/* Main content */}
-            <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-                {children}
+            <main className="flex-grow py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+                <div className={className} {...props}>
+                    {children}
+                </div>
             </main>
 
             {/* Footer */}

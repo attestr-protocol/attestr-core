@@ -5,7 +5,7 @@ require("dotenv").config({ path: "../.env.local" });
 const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 module.exports = {
-  solidity: "0.8.28",
+  solidity: "0.8.17",
   networks: {
     hardhat: {},
     mumbai: {
