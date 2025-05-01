@@ -2,16 +2,16 @@ require("@nomiclabs/hardhat-waffle");
 require("dotenv").config({ path: "../.env.local" });
 
 // Private key for deployment
-const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "0x0000000000000000000000000000000000000000000000000000000000000000";
+const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
 
 module.exports = {
   solidity: "0.8.17",
   networks: {
     hardhat: {},
-    mumbai: {
-      url: "https://rpc-mumbai.maticvigil.com",
+    amoy: {
+      url: process.env.NEXT_PUBLIC_RPC_URL,
       accounts: [PRIVATE_KEY],
-      chainId: 80001,
+      chainId: parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10),
     },
   },
   paths: {

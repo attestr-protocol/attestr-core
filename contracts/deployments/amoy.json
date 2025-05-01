@@ -1,0 +1,9 @@
+{
+  "network": "amoy",
+  "chainId": 80002,
+  "timestamp": "2025-05-01T06:05:02.685Z",
+  "contracts": {
+    "CertificateIssuance": "0x8f35A4161FE787d6934666012eCf7C56cd390c8E",
+    "Verification": "0xa188c8aF1D7Ef9f00A8fCda2002a6F680F9Cb835"
+  }
+}

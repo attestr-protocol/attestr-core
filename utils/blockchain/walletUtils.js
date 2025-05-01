@@ -10,7 +10,7 @@ export const isMetaMaskInstalled = () => {
 
 /**
  * Get an ethers provider instance
- * @returns {ethers.providers.Web3Provider} Provider instance
+ * @returns {ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider} Provider instance
  */
 export const getProvider = () => {
     // Check if window is defined (browser environment)
@@ -34,7 +34,7 @@ export const getProvider = () => {
     }
 
     // Fallback to a JSON-RPC provider (for server-side rendering or if MetaMask is not available)
-    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://rpc-mumbai.maticvigil.com";
+    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://polygon-amoy.g.alchemy.com/v2/your-api-key";
     return new ethers.providers.JsonRpcProvider(rpcUrl);
 };
 
@@ -51,8 +51,8 @@ export const isSupportedNetwork = async () => {
         const provider = getProvider();
         const { chainId } = await provider.getNetwork();
 
-        // Mumbai testnet chainId is 80001
-        const targetChainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80001', 10);
+        // Get target chain ID from environment or fallback to Amoy (80002)
+        const targetChainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80002', 10);
 
         return chainId === targetChainId;
     } catch (error) {
@@ -62,18 +62,21 @@ export const isSupportedNetwork = async () => {
 };
 
 /**
- * Switch to the Polygon Mumbai network
+ * Switch to the Polygon Amoy network
  * @returns {Promise<boolean>} Success state
  */
-export const switchToMumbaiNetwork = async () => {
+export const switchToAmoyNetwork = async () => {
     if (!isMetaMaskInstalled()) {
         return false;
     }
 
     try {
+        // Chain ID as hex string (80002 = 0x13882)
+        const chainIdHex = `0x${parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80002', 10).toString(16)}`;
+
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x13881' }], // Mumbai chainId in hex
+            params: [{ chainId: chainIdHex }],
         });
         return true;
     } catch (error) {
@@ -84,25 +87,25 @@ export const switchToMumbaiNetwork = async () => {
                     method: 'wallet_addEthereumChain',
                     params: [
                         {
-                            chainId: '0x13881',
-                            chainName: 'Polygon Mumbai Testnet',
+                            chainId: `0x${parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80002', 10).toString(16)}`,
+                            chainName: process.env.NEXT_PUBLIC_CHAIN_NAME || 'Polygon Amoy Testnet',
                             nativeCurrency: {
                                 name: 'MATIC',
                                 symbol: 'MATIC',
                                 decimals: 18,
                             },
-                            rpcUrls: ['https://rpc-mumbai.maticvigil.com'],
-                            blockExplorerUrls: ['https://mumbai.polygonscan.com'],
+                            rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL || 'https://polygon-amoy.g.alchemy.com/v2/your-api-key'],
+                            blockExplorerUrls: [process.env.NEXT_PUBLIC_EXPLORER_URL || 'https://www.oklink.com/amoy'],
                         },
                     ],
                 });
                 return true;
             } catch (addError) {
-                console.error('Error adding Mumbai network:', addError);
+                console.error('Error adding Polygon Amoy network:', addError);
                 return false;
             }
         }
-        console.error('Error switching to Mumbai network:', error);
+        console.error('Error switching to Polygon Amoy network:', error);
         return false;
     }
 };
