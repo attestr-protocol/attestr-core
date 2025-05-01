@@ -231,10 +231,10 @@
 
     /* Typography utilities */
     .text-balance {
-        text-wrap: balance;
+        overflow: auto;
     }
 
     .text-pretty {
-        text-wrap: pretty;
+        overflow: auto;
     }
 }
