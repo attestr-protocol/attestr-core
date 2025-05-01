@@ -147,7 +147,7 @@ const CertificateForm = ({
                 {isStorageInitializing ? 'Initializing...' : 'Initialize Storage'}
               </Button>
               <p className="text-sm text-blue-600 dark:text-blue-300 mt-2">
-                A verification email will be sent to this address. You'll need to click the link in the email to proceed.
+                A verification email will be sent to this address. You&apos;ll need to click the link in the email to proceed.
               </p>
             </div>
           </div>
