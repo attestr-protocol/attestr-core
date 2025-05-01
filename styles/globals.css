@@ -3,53 +3,20 @@
 @import 'tailwindcss/utilities';
 
 @layer base {
-    html {
-        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    }
-
     body {
-        @apply bg-white dark:bg-dark text-gray-900 dark:text-white transition-colors duration-200;
-    }
-
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-        @apply font-semibold leading-tight tracking-tight text-gray-900 dark:text-white;
+        @apply bg-gray-50 dark:bg-dark text-gray-900 dark:text-white;
     }
 
     h1 {
-        @apply text-4xl md:text-5xl mb-6;
+        @apply text-3xl font-bold mb-4;
     }
 
     h2 {
-        @apply text-3xl md:text-4xl mb-4;
+        @apply text-2xl font-semibold mb-3;
     }
 
     h3 {
-        @apply text-2xl md:text-3xl mb-3;
-    }
-
-    h4 {
-        @apply text-xl md:text-2xl mb-2;
-    }
-
-    h5 {
-        @apply text-lg md:text-xl mb-2;
-    }
-
-    h6 {
-        @apply text-base md:text-lg mb-2;
-    }
-
-    p {
-        @apply leading-relaxed mb-4 text-gray-700 dark:text-gray-300;
-    }
-
-    a {
-        @apply text-primary dark:text-primary-light hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary;
+        @apply text-xl font-medium mb-2;
     }
 
     button {
@@ -58,7 +25,7 @@
 
     /* Focus styles for better accessibility */
     :focus-visible {
-        @apply outline-none ring-2 ring-primary ring-offset-2 dark:ring-offset-dark;
+        @apply outline-none ring-2 ring-primary ring-offset-2;
     }
 }
 
@@ -66,39 +33,39 @@
 
     /* Button styles */
     .btn {
-        @apply px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center focus:outline-none shadow-sm;
+        @apply px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center;
     }
 
     .btn-primary {
-        @apply btn bg-primary text-white hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark;
+        @apply btn bg-primary text-white hover:bg-primary-dark focus:ring-2 focus:ring-primary-dark focus:ring-offset-2;
     }
 
     .btn-secondary {
-        @apply btn bg-secondary text-dark hover:bg-secondary-dark dark:bg-secondary dark:hover:bg-secondary-dark focus:ring-2 focus:ring-secondary focus:ring-offset-2 dark:focus:ring-offset-dark;
+        @apply btn bg-secondary text-dark hover:bg-secondary-dark focus:ring-2 focus:ring-secondary focus:ring-offset-2;
     }
 
     .btn-outline {
-        @apply btn bg-transparent border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-dark;
+        @apply btn border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light;
     }
 
     .btn-ghost {
-        @apply btn bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-dark shadow-none;
+        @apply btn bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light;
     }
 
     .btn-danger {
-        @apply btn bg-error text-white hover:bg-error-dark dark:bg-error dark:hover:bg-error-dark focus:ring-2 focus:ring-error focus:ring-offset-2 dark:focus:ring-offset-dark;
+        @apply btn bg-error text-white hover:bg-error-dark focus:ring-2 focus:ring-error focus:ring-offset-2;
     }
 
     .btn-success {
-        @apply btn bg-success text-white hover:bg-success-dark dark:bg-success dark:hover:bg-success-dark focus:ring-2 focus:ring-success focus:ring-offset-2 dark:focus:ring-offset-dark;
+        @apply btn bg-success text-white hover:bg-success-dark focus:ring-2 focus:ring-success focus:ring-offset-2;
     }
 
     .btn-sm {
-        @apply px-3 py-1.5 text-sm rounded;
+        @apply px-3 py-1.5 text-sm;
     }
 
     .btn-lg {
-        @apply px-6 py-3 text-lg rounded-md;
+        @apply px-6 py-3 text-lg;
     }
 
     .btn-icon {
@@ -108,34 +75,35 @@
     /* Disabled button state */
     .btn:disabled,
     .btn[disabled] {
-        @apply opacity-50 cursor-not-allowed shadow-none;
+        @apply opacity-50 cursor-not-allowed;
     }
 
     /* Card styles */
     .card {
-        @apply bg-white dark:bg-dark-light rounded-lg shadow-md p-6 transition-all duration-200;
-    }
-
-    .card-hover {
-        @apply hover:shadow-lg;
+        @apply bg-white dark:bg-dark-light rounded-lg shadow-lg p-6 transition-all duration-300 border border-secondary-light/30 hover:border-secondary-light dark:border-secondary-dark/30 dark:hover:border-secondary-dark hover:shadow-xl hover:shadow-secondary/5;
     }
 
     .card-flat {
         @apply bg-white dark:bg-dark-light rounded-lg p-6 border border-gray-200 dark:border-gray-700;
     }
 
+    /* Floating container with gold border */
+    .floating-container {
+        @apply bg-white dark:bg-dark-light rounded-xl p-6 md:p-8 shadow-xl border border-secondary-light/40 hover:border-secondary-light dark:border-secondary-dark/40 dark:hover:border-secondary-dark hover:shadow-2xl hover:shadow-secondary/10 transition-all duration-300 ease-in-out;
+    }
+
     /* Form input styles */
     .input {
-        @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-light text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-light focus:border-primary dark:focus:border-primary-light placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-200;
+        @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-light text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:focus:border-primary-light;
     }
 
     .input-error {
-        @apply border-error focus:ring-error focus:border-error dark:border-error dark:focus:ring-error dark:focus:border-error;
+        @apply border-error focus:ring-error focus:border-error;
     }
 
     /* Badge styles */
     .badge {
-        @apply inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-200;
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
     }
 
     .badge-primary {
@@ -202,39 +170,10 @@
 
     /* Loading spinner */
     .spinner {
-        @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite] text-primary dark:text-primary-light;
+        @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite];
     }
 
     .spinner-lg {
         @apply h-8 w-8 border-3;
-    }
-
-    /* Fade transitions */
-    .fade-in {
-        animation: fadeIn 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    /* Container with max-width */
-    .container-fluid {
-        @apply w-full px-4 sm:px-6 lg:px-8 mx-auto;
-    }
-
-    /* Typography utilities */
-    .text-balance {
-        overflow: auto;
-    }
-
-    .text-pretty {
-        overflow: auto;
     }
 }

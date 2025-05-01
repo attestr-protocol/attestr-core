@@ -210,13 +210,15 @@ const ProfileTemplate = ({
                     <p className="text-gray-600 dark:text-gray-300 mb-6">
                         Connect your wallet to view and manage your blockchain credentials.
                     </p>
-                    <Button
-                        variant="primary"
-                        onClick={onWalletConnect}
-                        size="lg"
-                    >
-                        Connect with MetaMask
-                    </Button>
+                    <div className="flex justify-center">
+                        <Button
+                            variant="primary"
+                            onClick={onWalletConnect}
+                            size="lg"
+                        >
+                            Connect with MetaMask
+                        </Button>
+                    </div>
                 </Card>
             )}
         </div>

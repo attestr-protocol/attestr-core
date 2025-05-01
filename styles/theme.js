@@ -5,99 +5,109 @@ const theme = {
         // Light mode
         light: {
             primary: {
-                DEFAULT: '#2563EB', // Rich blue - primary action
-                light: '#60A5FA',   // Lighter blue for highlights
-                dark: '#1D4ED8',    // Darker blue for hover states
+                DEFAULT: '#3b82f6', // Vibrant blue - primary action
+                light: '#93c5fd',   // Lighter blue for highlights
+                dark: '#1d4ed8',    // Darker blue for hover states
             },
             secondary: {
-                DEFAULT: '#F59E0B', // Warm amber for secondary actions
-                light: '#FCD34D',   // Light amber for highlights
-                dark: '#D97706',    // Dark amber for hover states
+                DEFAULT: '#f59e0b', // Rich amber for accents
+                light: '#fcd34d',   // Light amber for highlights
+                dark: '#d97706',    // Dark amber for hover states
             },
             background: {
-                DEFAULT: '#FFFFFF', // Pure white background
-                secondary: '#F9FAFB', // Light gray for cards, inputs, etc.
-                tertiary: '#F3F4F6', // Slightly darker for hover states
+                DEFAULT: '#f8fafc', // Near white background
+                secondary: '#f1f5f9', // Light gray for cards, inputs, etc.
+                tertiary: '#e2e8f0', // Slightly darker for hover states
             },
             text: {
-                primary: '#111827',  // Near black for primary text
-                secondary: '#4B5563', // Medium gray for secondary text
-                tertiary: '#9CA3AF', // Light gray for disabled/hint text
-                inverse: '#FFFFFF',  // White text for dark backgrounds
+                primary: '#0f172a',  // Near black for primary text
+                secondary: '#334155', // Medium gray for secondary text
+                tertiary: '#64748b', // Light gray for disabled/hint text
+                inverse: '#f8fafc',  // White text for dark backgrounds
             },
             border: {
-                DEFAULT: '#E5E7EB', // Light gray for borders
-                focus: '#2563EB',   // Primary color for focus states
+                DEFAULT: '#e2e8f0', // Light gray for borders
+                focus: '#3b82f6',   // Primary color for focus states
             },
             success: {
-                DEFAULT: '#10B981', // Green
-                light: '#D1FAE5',   // Light green background
+                DEFAULT: '#10b981', // Green
+                light: '#d1fae5',   // Light green background
                 dark: '#059669',    // Dark green
             },
             warning: {
-                DEFAULT: '#F59E0B', // Amber
-                light: '#FEF3C7',   // Light amber background
-                dark: '#D97706',    // Dark amber
+                DEFAULT: '#f59e0b', // Amber
+                light: '#fef3c7',   // Light amber background
+                dark: '#d97706',    // Dark amber
             },
             error: {
-                DEFAULT: '#EF4444', // Red
-                light: '#FEE2E2',   // Light red background
-                dark: '#DC2626',    // Dark red
+                DEFAULT: '#ef4444', // Red
+                light: '#fee2e2',   // Light red background
+                dark: '#dc2626',    // Dark red
             },
             info: {
-                DEFAULT: '#3B82F6', // Blue
-                light: '#DBEAFE',   // Light blue background
-                dark: '#2563EB',    // Dark blue
+                DEFAULT: '#3b82f6', // Blue
+                light: '#dbeafe',   // Light blue background
+                dark: '#2563eb',    // Dark blue
             },
+            accent: {
+                gold: '#fbbf24',    // Gold accent
+                purple: '#8b5cf6',  // Purple accent
+                teal: '#14b8a6',    // Teal accent
+            }
         },
 
         // Dark mode
         dark: {
             primary: {
-                DEFAULT: '#3B82F6', // Medium blue - primary action
-                light: '#93C5FD',   // Lighter blue for highlights
-                dark: '#1D4ED8',    // Darker blue for hover states
+                DEFAULT: '#60a5fa', // Brighter blue for dark mode
+                light: '#93c5fd',   // Lighter blue for highlights
+                dark: '#3b82f6',    // Mid blue for hover states
             },
             secondary: {
-                DEFAULT: '#EAB308',  // Amber for secondary actions
-                light: '#FDE68A',    // Light amber for highlights
-                dark: '#CA8A04',     // Dark amber for hover states
+                DEFAULT: '#fbbf24',  // Brighter amber for dark mode
+                light: '#fcd34d',    // Light amber for highlights
+                dark: '#f59e0b',     // Mid amber for hover states
             },
             background: {
-                DEFAULT: '#0F172A',   // Dark blue-gray background
-                secondary: '#1E293B', // Lighter blue-gray for cards
+                DEFAULT: '#0f172a',   // Deep blue-gray background
+                secondary: '#1e293b', // Lighter blue-gray for cards
                 tertiary: '#334155',  // Medium blue-gray for hover states
             },
             text: {
-                primary: '#F9FAFB',   // Nearly white for primary text
-                secondary: '#E5E7EB', // Light gray for secondary text
-                tertiary: '#9CA3AF',  // Medium gray for disabled/hint text
-                inverse: '#111827',   // Dark text for light backgrounds
+                primary: '#f8fafc',   // Near white for primary text
+                secondary: '#e2e8f0', // Light gray for secondary text
+                tertiary: '#94a3b8',  // Medium gray for disabled/hint text
+                inverse: '#0f172a',   // Dark text for light backgrounds
             },
             border: {
                 DEFAULT: '#334155',   // Medium blue-gray for borders
-                focus: '#3B82F6',     // Primary color for focus states
+                focus: '#60a5fa',     // Primary color for focus states
             },
             success: {
-                DEFAULT: '#10B981',   // Green
-                light: '#065F46',     // Dark green background
-                dark: '#34D399',      // Light green for text
+                DEFAULT: '#10b981',   // Green
+                light: '#065f46',     // Dark green background
+                dark: '#34d399',      // Light green for text
             },
             warning: {
-                DEFAULT: '#F59E0B',   // Amber
-                light: '#78350F',     // Dark amber background
-                dark: '#FBBF24',      // Light amber for text
+                DEFAULT: '#f59e0b',   // Amber
+                light: '#78350f',     // Dark amber background
+                dark: '#fbbf24',      // Light amber for text
             },
             error: {
-                DEFAULT: '#EF4444',   // Red
-                light: '#7F1D1D',     // Dark red background
-                dark: '#FCA5A5',      // Light red for text
+                DEFAULT: '#ef4444',   // Red
+                light: '#7f1d1d',     // Dark red background
+                dark: '#fca5a5',      // Light red for text
             },
             info: {
-                DEFAULT: '#3B82F6',   // Blue
-                light: '#1E3A8A',     // Dark blue background
-                dark: '#93C5FD',      // Light blue for text
+                DEFAULT: '#60a5fa',   // Blue
+                light: '#1e3a8a',     // Dark blue background
+                dark: '#93c5fd',      // Light blue for text
             },
+            accent: {
+                gold: '#fcd34d',      // Brighter gold for dark mode
+                purple: '#a78bfa',    // Brighter purple for dark mode
+                teal: '#2dd4bf',      // Brighter teal for dark mode
+            }
         },
     },
 
@@ -179,7 +189,10 @@ const theme = {
         md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+        gold: '0 10px 25px -5px rgba(251, 191, 36, 0.2)',
+        'gold-sm': '0 4px 6px -1px rgba(251, 191, 36, 0.1), 0 2px 4px -1px rgba(251, 191, 36, 0.06)',
         none: 'none',
     },
 
@@ -202,4 +215,4 @@ const theme = {
     },
 };
 
-export default theme;
+export default theme; 

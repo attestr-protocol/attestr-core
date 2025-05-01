@@ -71,7 +71,7 @@ export default function VerifyPage() {
 
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="mb-8 text-center">
+                <div className="mb-10 text-center">
                     <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
                         Verify Certificate
                     </h1>
