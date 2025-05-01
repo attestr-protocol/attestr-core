@@ -81,8 +81,8 @@ The project follows a component-based architecture with atomic design principles
    NEXT_PUBLIC_WEB3_STORAGE_TOKEN=your_web3_storage_token
    NEXT_PUBLIC_CERTIFICATE_CONTRACT_ADDRESS=your_contract_address
    NEXT_PUBLIC_VERIFICATION_CONTRACT_ADDRESS=your_verification_contract_address
-   NEXT_PUBLIC_RPC_URL=https://rpc-mumbai.maticvigil.com
-   NEXT_PUBLIC_CHAIN_ID=80001
+   NEXT_PUBLIC_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_API_KEY
+   NEXT_PUBLIC_CHAIN_ID=80002
    ```
 
 4. Run the development server:
@@ -104,7 +104,7 @@ To deploy contracts:
 ```bash
 cd contracts
 npm install
-npm run deploy:mumbai
+npm run deploy:amoy
 ```
 
 ## 🌐 Open Source & Community
