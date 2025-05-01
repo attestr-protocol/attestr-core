@@ -68,8 +68,7 @@ The project follows a component-based architecture with atomic design principles
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/verichain/verichain.git
-   cd verichain
+   git clone https://github.com/VeriChain.git
    ```
 
 2. Install dependencies:
