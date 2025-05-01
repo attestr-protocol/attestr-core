@@ -234,7 +234,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Verify</h3>
                 <p className="mt-2 text-base text-gray-600 dark:text-gray-300">
-                  Anyone can instantly verify a credential's authenticity by checking its hash on the blockchain.
+                  Anyone can instantly verify a credential&apos;s authenticity by checking its hash on the blockchain.
                 </p>
               </div>
             </div>
