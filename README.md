@@ -15,7 +15,7 @@ VeriChain is a modern full-stack decentralized application for issuing, verifyin
 
 - **Frontend**: React with Next.js
 - **UI Framework**: Tailwind CSS with custom theming
-- **Blockchain**: Ethereum (Polygon Mumbai Testnet)
+- **Blockchain**: Ethereum (Polygon Amoy Testnet)
 - **Smart Contracts**: Solidity
 - **Storage**: IPFS via Web3.Storage
 - **Authentication**: MetaMask wallet integration
