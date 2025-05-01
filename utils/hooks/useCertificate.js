@@ -1,5 +1,5 @@
 // utils/hooks/useCertificate.js
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
     issueCertificate,
     verifyCertificate,
@@ -10,7 +10,10 @@ import {
 import {
     formatCertificateMetadata,
     storeCertificateMetadata,
-    initializeStorage
+    initializeStorage,
+    retrieveCertificateMetadata,
+    isStorageInitialized,
+    getCurrentSpaceDid
 } from '../storage/ipfsStorage';
 import { getProvider } from '../blockchain/walletUtils';
 
@@ -23,6 +26,12 @@ export const useCertificate = () => {
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [storageInitialized, setStorageInitialized] = useState(false);
+    const [emailVerificationPending, setEmailVerificationPending] = useState(false);
+
+    // Check storage initialized state on mount
+    useEffect(() => {
+        setStorageInitialized(isStorageInitialized());
+    }, []);
 
     // Helper to show and auto-hide success messages
     const showSuccess = (message) => {
@@ -33,18 +42,47 @@ export const useCertificate = () => {
     // Initialize IPFS storage
     const initializeIPFSStorage = useCallback(async (email) => {
         setIsLoading(true);
+        setError(null);
+        setEmailVerificationPending(false);
+
         try {
-            const result = await initializeStorage(email);
-            setStorageInitialized(result);
-            return result;
+            // Skip if already initialized
+            if (storageInitialized) {
+                console.log('Storage already initialized');
+                return true;
+            }
+
+            console.log(`Attempting to initialize storage with email: ${email}`);
+
+            try {
+                // Try to initialize with the given email
+                const result = await initializeStorage(email);
+
+                if (result) {
+                    setStorageInitialized(true);
+                    showSuccess('Storage initialized successfully');
+                    return true;
+                } else {
+                    setEmailVerificationPending(true);
+                    console.log('Email verification pending. Please check your inbox.');
+                    return false;
+                }
+            } catch (initError) {
+                if (initError.message && initError.message.includes('email')) {
+                    setEmailVerificationPending(true);
+                    console.log('Email verification pending. Please check your inbox.');
+                    return false;
+                }
+                throw initError;
+            }
         } catch (error) {
             console.error('Error initializing IPFS storage:', error);
-            setError('Failed to initialize IPFS storage. Please try again.');
+            setError('Failed to initialize storage: ' + (error.message || 'Unknown error'));
             return false;
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [storageInitialized]);
 
     // Issue a new certificate
     const issueNewCertificate = useCallback(async (certificateData) => {
@@ -55,20 +93,24 @@ export const useCertificate = () => {
         try {
             // Make sure storage is initialized
             if (!storageInitialized) {
-                // Use the issuer's email to initialize storage
-                const email = certificateData.issuerEmail || 'user@example.com';
-                const initialized = await initializeIPFSStorage(email);
+                const initialized = await initializeIPFSStorage(certificateData.issuerEmail);
                 if (!initialized) {
-                    throw new Error('Failed to initialize IPFS storage. Please try again.');
+                    throw new Error('Storage not initialized. Please complete email verification first.');
                 }
             }
 
             // Get current wallet if not provided
             let { issuerWallet } = certificateData;
             if (!issuerWallet) {
-                const provider = getProvider();
-                const signer = provider.getSigner();
-                issuerWallet = await signer.getAddress();
+                try {
+                    const provider = getProvider();
+                    const signer = provider.getSigner();
+                    issuerWallet = await signer.getAddress();
+                    certificateData.issuerWallet = issuerWallet;
+                } catch (walletError) {
+                    console.error('Error getting wallet address:', walletError);
+                    throw new Error('Failed to get wallet address. Please ensure you are connected to MetaMask.');
+                }
             }
 
             // Format metadata
@@ -77,38 +119,35 @@ export const useCertificate = () => {
                 issuerWallet,
             });
 
-            try {
-                // Store metadata on IPFS
-                console.log('Storing certificate metadata on IPFS...');
-                const ipfsCid = await storeCertificateMetadata(metadata);
-                const metadataURI = `ipfs://${ipfsCid}`;
-                console.log('Metadata URI:', metadataURI);
+            // Store metadata on IPFS
+            console.log('Storing certificate metadata on IPFS...');
+            const ipfsCid = await storeCertificateMetadata(metadata);
+            const metadataURI = `ipfs://${ipfsCid}`;
+            console.log('Metadata stored with URI:', metadataURI);
 
-                // Issue certificate on blockchain
-                console.log('Issuing certificate on blockchain...');
-                const result = await issueCertificate({
-                    ...certificateData,
-                    issuerWallet,
-                    metadataURI
-                });
+            // Issue certificate on blockchain
+            console.log('Issuing certificate on blockchain...');
+            const result = await issueCertificate({
+                ...certificateData,
+                issuerWallet,
+                metadataURI
+            });
 
-                if (!result.success) {
-                    throw new Error(result.error || 'Failed to issue certificate on blockchain');
-                }
-
-                showSuccess(`Certificate issued successfully with ID: ${result.certificateId.substring(0, 10)}...`);
-                return {
-                    ...result,
-                    metadata
-                };
-            } catch (error) {
-                console.error('Error in certificate issuance process:', error);
-                throw error;
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to issue certificate on blockchain');
             }
+
+            // Add metadata to the result
+            result.metadata = metadata;
+            showSuccess(`Certificate issued successfully with ID: ${result.certificateId.substring(0, 10)}...`);
+            return result;
         } catch (error) {
             console.error('Error issuing certificate:', error);
             setError(error.message || 'An error occurred while issuing the certificate');
-            return { success: false, error: error.message };
+            return {
+                success: false,
+                error: error.message || 'Unknown error during certificate issuance'
+            };
         } finally {
             setIsLoading(false);
         }
@@ -120,13 +159,25 @@ export const useCertificate = () => {
         setError(null);
 
         try {
+            // Get certificate information from blockchain
             const result = await verifyCertificate(certificateId);
 
             if (!result.success) {
                 throw new Error(result.error || 'Failed to verify certificate');
             }
 
-            // For UI purposes, let's determine a status
+            // Try to get metadata if available
+            if (result.metadataURI) {
+                try {
+                    const metadata = await retrieveCertificateMetadata(result.metadataURI);
+                    result.metadata = metadata;
+                } catch (metadataError) {
+                    console.warn('Error retrieving metadata:', metadataError);
+                    // Continue even without metadata
+                }
+            }
+
+            // Determine certificate status for UI
             let status = 'valid';
             if (!result.isValid) {
                 status = result.revoked ? 'revoked' : 'invalid';
@@ -180,16 +231,32 @@ export const useCertificate = () => {
 
             const certificates = await getCertificatesForRecipient(walletAddress);
 
-            // Add a status property to each certificate for UI purposes
-            return certificates.map(cert => {
-                let status = 'valid';
-                if (!cert.isValid) {
-                    status = cert.revoked ? 'revoked' : 'invalid';
-                } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
-                    status = 'expired';
-                }
-                return { ...cert, status };
-            });
+            // Try to enhance certificates with metadata if available
+            const enhancedCertificates = await Promise.all(
+                certificates.map(async (cert) => {
+                    // Add a status property for UI purposes
+                    let status = 'valid';
+                    if (!cert.isValid) {
+                        status = cert.revoked ? 'revoked' : 'invalid';
+                    } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
+                        status = 'expired';
+                    }
+
+                    // Try to get metadata
+                    if (cert.metadataURI) {
+                        try {
+                            const metadata = await retrieveCertificateMetadata(cert.metadataURI);
+                            return { ...cert, status, metadata };
+                        } catch (err) {
+                            console.warn(`Failed to get metadata for certificate ${cert.certificateId}:`, err);
+                        }
+                    }
+
+                    return { ...cert, status };
+                })
+            );
+
+            return enhancedCertificates;
         } catch (error) {
             console.error('Error getting certificates:', error);
             setError(error.message || 'An error occurred while fetching certificates');
@@ -211,16 +278,32 @@ export const useCertificate = () => {
 
             const certificates = await getCertificatesForIssuer(walletAddress);
 
-            // Add a status property to each certificate for UI purposes
-            return certificates.map(cert => {
-                let status = 'valid';
-                if (!cert.isValid) {
-                    status = cert.revoked ? 'revoked' : 'invalid';
-                } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
-                    status = 'expired';
-                }
-                return { ...cert, status };
-            });
+            // Try to enhance certificates with metadata if available
+            const enhancedCertificates = await Promise.all(
+                certificates.map(async (cert) => {
+                    // Add a status property for UI purposes
+                    let status = 'valid';
+                    if (!cert.isValid) {
+                        status = cert.revoked ? 'revoked' : 'invalid';
+                    } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
+                        status = 'expired';
+                    }
+
+                    // Try to get metadata
+                    if (cert.metadataURI) {
+                        try {
+                            const metadata = await retrieveCertificateMetadata(cert.metadataURI);
+                            return { ...cert, status, metadata };
+                        } catch (err) {
+                            console.warn(`Failed to get metadata for certificate ${cert.certificateId}:`, err);
+                        }
+                    }
+
+                    return { ...cert, status };
+                })
+            );
+
+            return enhancedCertificates;
         } catch (error) {
             console.error('Error getting issued certificates:', error);
             setError(error.message || 'An error occurred while fetching issued certificates');
@@ -230,6 +313,19 @@ export const useCertificate = () => {
         }
     }, []);
 
+    // Check if a space is already initialized
+    const checkStorageStatus = useCallback(() => {
+        const initialized = isStorageInitialized();
+        setStorageInitialized(initialized);
+        return initialized;
+    }, []);
+
+    // Get the current space ID
+    const getSpaceInfo = useCallback(() => {
+        const spaceDid = getCurrentSpaceDid();
+        return { spaceDid };
+    }, []);
+
     return {
         initializeIPFSStorage,
         issueNewCertificate,
@@ -237,9 +333,12 @@ export const useCertificate = () => {
         recordCertificateVerification,
         getRecipientCertificates,
         getIssuerCertificates,
+        checkStorageStatus,
+        getSpaceInfo,
         isLoading,
         error,
         successMessage,
-        storageInitialized
+        storageInitialized,
+        emailVerificationPending
     };
 };

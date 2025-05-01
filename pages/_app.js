@@ -9,12 +9,16 @@ import Head from 'next/head';
 import { useEffect } from 'react';
 import { initializeStorage } from '../utils/storage/ipfsStorage';
 import { PolygonAmoyTestnet } from "@thirdweb-dev/chains";
+import { patchCircularJsonIssue } from '../utils/thirdwebUtils';
 
 // Initialize web3.storage with API token
 const initStorage = () => {
   if (typeof window === 'undefined') {
     return;
   } // Skip on server-side
+
+    // Patch the circular reference issue in ThirdWeb
+    patchCircularJsonIssue();
 
   const token = process.env.NEXT_PUBLIC_WEB3_STORAGE_TOKEN;
   if (token) {
