@@ -14,10 +14,16 @@ import Button from '../../atoms/buttons/Button';
  * @param {Object} props
  * @param {Function} props.onSubmit - Submit callback
  * @param {boolean} props.isSubmitting - Whether form is submitting
+ * @param {boolean} props.isStorageInitializing - Whether storage is being initialized
+ * @param {boolean} props.storageInitialized - Whether storage has been initialized
+ * @param {Function} props.onInitializeStorage - Callback to initialize storage
  */
 const CertificateForm = ({
   onSubmit,
   isSubmitting = false,
+  isStorageInitializing = false,
+  storageInitialized = false,
+  onInitializeStorage,
   className = '',
   ...props
 }) => {
@@ -29,9 +35,11 @@ const CertificateForm = ({
     expiryDate: '',
     description: '',
     termsAccepted: false,
+    issuerEmail: '',
   });
 
   const [errors, setErrors] = useState({});
+  const [showStorageSection, setShowStorageSection] = useState(!storageInitialized);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -66,8 +74,26 @@ const CertificateForm = ({
       newErrors.termsAccepted = 'You must accept the terms';
     }
 
+    if (showStorageSection && !storageInitialized && (!formData.issuerEmail || !formData.issuerEmail.includes('@'))) {
+      newErrors.issuerEmail = 'A valid email is required for IPFS storage';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInitializeStorage = (e) => {
+    e.preventDefault();
+
+    if (!formData.issuerEmail || !formData.issuerEmail.includes('@')) {
+      setErrors({
+        ...errors,
+        issuerEmail: 'A valid email is required for IPFS storage'
+      });
+      return;
+    }
+
+    onInitializeStorage(formData.issuerEmail);
   };
 
   const handleSubmit = (e) => {
@@ -81,6 +107,52 @@ const CertificateForm = ({
   return (
     <div className={className} {...props}>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* IPFS Storage Initialization Section */}
+        {showStorageSection && !storageInitialized && (
+          <div className="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 p-4 rounded-lg mb-6">
+            <h3 className="text-lg font-medium text-blue-700 dark:text-blue-300 mb-2">
+              Initialize IPFS Storage
+            </h3>
+            <p className="text-blue-600 dark:text-blue-300 mb-4">
+              Before issuing certificates, we need to set up IPFS storage for metadata.
+              This requires a valid email address for verification.
+            </p>
+
+            <FormField
+              id="issuerEmail"
+              label="Email Address"
+              required
+              error={errors.issuerEmail}
+            >
+              <TextInput
+                id="issuerEmail"
+                name="issuerEmail"
+                value={formData.issuerEmail}
+                onChange={handleChange}
+                placeholder="Your email address"
+                required
+                error={errors.issuerEmail}
+                type="email"
+              />
+            </FormField>
+
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="primary"
+                disabled={isStorageInitializing || !formData.issuerEmail}
+                isLoading={isStorageInitializing}
+                onClick={handleInitializeStorage}
+              >
+                {isStorageInitializing ? 'Initializing...' : 'Initialize Storage'}
+              </Button>
+              <p className="text-sm text-blue-600 dark:text-blue-300 mt-2">
+                A verification email will be sent to this address. You'll need to click the link in the email to proceed.
+              </p>
+            </div>
+          </div>
+        )}
+
         <FormGroup columns={2}>
           <FormField
             id="recipientName"
@@ -194,12 +266,19 @@ const CertificateForm = ({
           <Button
             type="submit"
             variant="primary"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (showStorageSection && !storageInitialized)}
             fullWidth
             className="md:w-auto"
+            isLoading={isSubmitting}
           >
             {isSubmitting ? 'Issuing Certificate...' : 'Issue Certificate'}
           </Button>
+
+          {showStorageSection && !storageInitialized && (
+            <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+              You must initialize storage before issuing certificates.
+            </p>
+          )}
         </div>
       </form>
     </div>

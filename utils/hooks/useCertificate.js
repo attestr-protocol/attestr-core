@@ -9,7 +9,8 @@ import {
 } from '../blockchain/certificateUtils';
 import {
     formatCertificateMetadata,
-    storeCertificateMetadata
+    storeCertificateMetadata,
+    initializeStorage
 } from '../storage/ipfsStorage';
 import { getProvider } from '../blockchain/walletUtils';
 
@@ -21,12 +22,29 @@ export const useCertificate = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [storageInitialized, setStorageInitialized] = useState(false);
 
     // Helper to show and auto-hide success messages
     const showSuccess = (message) => {
         setSuccessMessage(message);
         setTimeout(() => setSuccessMessage(null), 5000);
     };
+
+    // Initialize IPFS storage
+    const initializeIPFSStorage = useCallback(async (email) => {
+        setIsLoading(true);
+        try {
+            const result = await initializeStorage(email);
+            setStorageInitialized(result);
+            return result;
+        } catch (error) {
+            console.error('Error initializing IPFS storage:', error);
+            setError('Failed to initialize IPFS storage. Please try again.');
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     // Issue a new certificate
     const issueNewCertificate = useCallback(async (certificateData) => {
@@ -35,6 +53,16 @@ export const useCertificate = () => {
         setSuccessMessage(null);
 
         try {
+            // Make sure storage is initialized
+            if (!storageInitialized) {
+                // Use the issuer's email to initialize storage
+                const email = certificateData.issuerEmail || 'user@example.com';
+                const initialized = await initializeIPFSStorage(email);
+                if (!initialized) {
+                    throw new Error('Failed to initialize IPFS storage. Please try again.');
+                }
+            }
+
             // Get current wallet if not provided
             let { issuerWallet } = certificateData;
             if (!issuerWallet) {
@@ -43,18 +71,40 @@ export const useCertificate = () => {
                 issuerWallet = await signer.getAddress();
             }
 
-            // Issue certificate (this includes metadata formatting and IPFS storage)
-            const result = await issueCertificate({
+            // Format metadata
+            const metadata = formatCertificateMetadata({
                 ...certificateData,
                 issuerWallet,
             });
 
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to issue certificate');
-            }
+            try {
+                // Store metadata on IPFS
+                console.log('Storing certificate metadata on IPFS...');
+                const ipfsCid = await storeCertificateMetadata(metadata);
+                const metadataURI = `ipfs://${ipfsCid}`;
+                console.log('Metadata URI:', metadataURI);
 
-            showSuccess(`Certificate issued successfully with ID: ${result.certificateId.substring(0, 10)}...`);
-            return result;
+                // Issue certificate on blockchain
+                console.log('Issuing certificate on blockchain...');
+                const result = await issueCertificate({
+                    ...certificateData,
+                    issuerWallet,
+                    metadataURI
+                });
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to issue certificate on blockchain');
+                }
+
+                showSuccess(`Certificate issued successfully with ID: ${result.certificateId.substring(0, 10)}...`);
+                return {
+                    ...result,
+                    metadata
+                };
+            } catch (error) {
+                console.error('Error in certificate issuance process:', error);
+                throw error;
+            }
         } catch (error) {
             console.error('Error issuing certificate:', error);
             setError(error.message || 'An error occurred while issuing the certificate');
@@ -62,7 +112,7 @@ export const useCertificate = () => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [storageInitialized, initializeIPFSStorage]);
 
     // Verify a certificate
     const verifyExistingCertificate = useCallback(async (certificateId) => {
@@ -181,6 +231,7 @@ export const useCertificate = () => {
     }, []);
 
     return {
+        initializeIPFSStorage,
         issueNewCertificate,
         verifyExistingCertificate,
         recordCertificateVerification,
@@ -189,5 +240,6 @@ export const useCertificate = () => {
         isLoading,
         error,
         successMessage,
+        storageInitialized
     };
 };

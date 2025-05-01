@@ -1,25 +1,69 @@
-import { Web3Storage } from 'web3.storage';
+// utils/storage/ipfsStorage.js
+import * as Client from '@web3-storage/w3up-client';
 
-// Initialize Web3Storage client
+// Store the client instance
 let client;
+let currentSpace;
+let isAuthorized = false;
 
 /**
- * Initialize the web3.storage client with an API token
- * @param {string} token - web3.storage API token
- * @returns {boolean} - Whether initialization was successful
+ * Initialize the web3.storage client with an email address
+ * @param {string} email - User email for w3up authorization
+ * @returns {Promise<boolean>} - Whether initialization was successful
  */
-export function initializeStorage(token) {
-    if (!token) {
-        console.warn('No Web3.Storage token provided. IPFS storage will be unavailable.');
+export async function initializeStorage(email) {
+    if (!email) {
+        console.warn('No email provided for web3.storage. IPFS storage will be unavailable.');
         return false;
     }
 
     try {
-        client = new Web3Storage({ token });
-        console.log('Web3.Storage initialized successfully');
+        // Create the w3up client
+        console.log('Initializing w3up client...');
+        client = await Client.create();
+
+        // Check if we have an existing space or need to create one
+        const spaces = await client.spaces();
+
+        if (spaces.length === 0) {
+            // Need to set up a new space and authorize
+            console.log('No existing spaces found. Setting up new space...');
+
+            // Create a new space
+            const spaceName = 'verichain-space';
+            const space = await client.createSpace(spaceName);
+
+            // Set as current space
+            await client.setCurrentSpace(space.did());
+            currentSpace = space;
+
+            // Authorize and register the space
+            try {
+                console.log(`Authorizing with email: ${email}`);
+                // This will send a verification email to the user
+                await client.authorize(email);
+                isAuthorized = true;
+
+                // Register the space with the authorized email
+                await client.registerSpace(email);
+
+                console.log('Space created, authorized and registered successfully');
+            } catch (authError) {
+                console.error('Authorization or registration failed:', authError);
+                return false;
+            }
+        } else {
+            // Use existing space
+            currentSpace = spaces[0];
+            await client.setCurrentSpace(currentSpace.did());
+            console.log('Using existing space:', currentSpace.did());
+            isAuthorized = true;
+        }
+
+        console.log('w3up client initialized successfully');
         return true;
     } catch (error) {
-        console.error('Failed to initialize Web3.Storage:', error);
+        console.error('Failed to initialize w3up client:', error);
         return false;
     }
 }
@@ -30,37 +74,28 @@ export function initializeStorage(token) {
  * @returns {Promise<string>} - IPFS CID (Content Identifier)
  */
 export async function storeCertificateMetadata(certificateData) {
-    if (!client) {
-        throw new Error('Storage client not initialized. Call initializeStorage first.');
+    if (!client || !isAuthorized) {
+        throw new Error('Storage client not initialized or not authorized. Call initializeStorage first.');
     }
 
     try {
-        console.log('Preparing certificate metadata for IPFS storage');
+        console.log('Storing certificate metadata on IPFS...');
 
-        // Create a JSON blob from the certificate data
-        const blob = new Blob([JSON.stringify(certificateData, null, 2)], {
-            type: 'application/json'
-        });
+        // Create a JSON string from the certificate data
+        const jsonString = JSON.stringify(certificateData, null, 2);
 
-        // Create a File object from the blob with a unique name using timestamp
+        // Create a File object from the JSON string
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const files = [
-            new File([blob], `certificate-${timestamp}.json`)
-        ];
+        const fileName = `certificate-${timestamp}.json`;
+        const file = new File([jsonString], fileName, { type: 'application/json' });
 
-        // Upload to IPFS via web3.storage with progress tracking
-        console.log('Uploading to IPFS...');
-        const cid = await client.put(files, {
-            name: `VeriChain Certificate ${timestamp}`,
-            onRootCidReady: (rootCid) => {
-                console.log('Root CID:', rootCid);
-            },
-            onStoredChunk: (bytes) => {
-                console.log(`Stored chunk of ${bytes.toLocaleString()} bytes`);
-            }
-        });
+        // Upload the file using the client
+        const uploadResult = await client.uploadFile(file);
 
+        // Get the CID from the result
+        const cid = uploadResult.toString();
         console.log('Successfully stored certificate metadata with CID:', cid);
+
         return cid;
     } catch (error) {
         console.error('Error storing certificate metadata:', error);
@@ -83,84 +118,24 @@ export async function retrieveCertificateMetadata(cidOrUri) {
         const cleanCid = cidOrUri.replace('ipfs://', '');
         console.log('Retrieving metadata for CID:', cleanCid);
 
-        // First try using web3.storage client if available
-        if (client) {
-            try {
-                const res = await client.get(cleanCid);
+        // Use the w3up gateway to access the file
+        const url = `https://w3s.link/ipfs/${cleanCid}`;
+        console.log('Fetching from gateway URL:', url);
 
-                if (res && res.ok) {
-                    // Get all files from this CID
-                    const files = await res.files();
-
-                    if (files && files.length > 0) {
-                        // Find the JSON file (should be the only one or the first one)
-                        const file = files.find(f => f.name.endsWith('.json')) || files[0];
-                        const text = await file.text();
-                        return JSON.parse(text);
-                    }
-                }
-                // If we couldn't retrieve using client, fall back to gateway method
-                console.log('Could not retrieve using web3.storage client, falling back to gateways');
-            } catch (err) {
-                console.warn('Error retrieving from web3.storage directly:', err);
-                // Continue to gateway fallback
+        // Fetch the file from the gateway
+        const response = await fetch(url, {
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json'
             }
-        }
+        });
 
-        // Get the data from IPFS using public gateways for redundancy
-        const gateways = [
-            `https://${cleanCid}.ipfs.dweb.link/certificate-metadata.json`,
-            `https://ipfs.io/ipfs/${cleanCid}/certificate-metadata.json`,
-            `https://gateway.pinata.cloud/ipfs/${cleanCid}/certificate-metadata.json`,
-            `https://cloudflare-ipfs.com/ipfs/${cleanCid}/certificate-metadata.json`,
-            `https://${cleanCid}.ipfs.nftstorage.link/`,
-            // Try accessing without the certificate-metadata.json suffix
-            `https://${cleanCid}.ipfs.dweb.link`,
-            `https://ipfs.io/ipfs/${cleanCid}`,
-            `https://gateway.pinata.cloud/ipfs/${cleanCid}`,
-            `https://cloudflare-ipfs.com/ipfs/${cleanCid}`
-        ];
-
-        let response = null;
-        let errorMessages = [];
-
-        // Try each gateway until one works
-        for (const gateway of gateways) {
-            try {
-                console.log(`Trying gateway: ${gateway}`);
-                const res = await fetch(gateway, {
-                    cache: 'no-store',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (res.ok) {
-                    response = res;
-                    console.log(`Successfully retrieved from ${gateway}`);
-                    break;
-                } else {
-                    errorMessages.push(`Gateway ${gateway} returned ${res.status}`);
-                }
-            } catch (err) {
-                errorMessages.push(`Gateway ${gateway} error: ${err.message}`);
-            }
-        }
-
-        if (!response) {
-            throw new Error(`Failed to fetch metadata from all gateways: ${errorMessages.join(', ')}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch metadata: ${response.status} ${response.statusText}`);
         }
 
         // Parse the JSON data
-        try {
-            return await response.json();
-        } catch (jsonError) {
-            // If JSON parsing fails, return the text content
-            const text = await response.text();
-            console.error('Error parsing JSON:', jsonError);
-            console.log('Raw response:', text);
-            throw new Error('Failed to parse metadata JSON');
-        }
+        return await response.json();
     } catch (error) {
         console.error('Error retrieving certificate metadata:', error);
         throw error;
