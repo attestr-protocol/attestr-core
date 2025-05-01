@@ -1,4 +1,4 @@
-// pages/verify/index.js
+// pages/verify/index.js - Update the TextInput usage
 import { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -26,7 +26,7 @@ export default function VerifyPage() {
     // Handle certificate verification
     const handleVerify = async (e) => {
         e.preventDefault();
-        
+
         if (!certificateId.trim()) {
             return;
         }
@@ -98,17 +98,17 @@ export default function VerifyPage() {
                                     error={error}
                                 />
                             </div>
-                            
+
                             <div className="flex justify-between items-center pt-4">
                                 <Button
                                     variant="outline"
                                     type="button"
-                                    startIcon={<QrcodeIcon className="h-5 w-5" />}
                                     onClick={() => alert("QR Code scanner coming soon!")}
                                 >
+                                    <QrcodeIcon className="h-5 w-5 mr-2" />
                                     Scan QR Code
                                 </Button>
-                                
+
                                 <Button
                                     type="submit"
                                     variant="primary"
@@ -162,7 +162,7 @@ export default function VerifyPage() {
                                 ← Verify Another Certificate
                             </Button>
                         </div>
-                        
+
                         <VerificationResult
                             certificate={verificationResult.certificate}
                             metadata={verificationResult.metadata}
