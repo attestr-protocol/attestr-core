@@ -1,21 +1,12 @@
 // components/wallet/WalletConnectButton.jsx
 import React, { useState, useEffect } from 'react';
-import { ArweaveWebWallet } from 'arweave-wallet-connector';
 import Button from '../atoms/buttons/Button';
 import Modal from '../molecules/modals/Modal';
-
-// Wallet types
-const AR_CONNECT = 'arconnect';
-const ARWEAVE_APP = 'arweave.app';
-
-// Initialize arweave.app wallet connector
-const webWallet = new ArweaveWebWallet({
-    name: 'VeriChain',
-    logo: '/logo.png', // Make sure you have a logo.png in your public folder
-}, 'arweave.app');
+import { useArweave } from '../../contexts/ArweaveContext';
 
 /**
  * WalletConnectButton component for connecting Arweave wallets
+ * This version works with our fallback mechanism
  * 
  * @param {Object} props
  * @param {Function} props.onConnected - Callback when wallet connects
@@ -30,114 +21,84 @@ const WalletConnectButton = ({
     ...props
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [connectingWallet, setConnectingWallet] = useState(null);
-    const [walletAddress, setWalletAddress] = useState('');
     const [error, setError] = useState(null);
 
-    // Check for existing wallet connection on mount
+    // Get Arweave context
+    const {
+        generateTestWallet,
+        isInitialized,
+        isLoading,
+        walletAddress,
+        useFallback,
+        resetFallbackMode
+    } = useArweave();
+
+    // Call onConnect/onDisconnect callbacks when wallet state changes
     useEffect(() => {
-        // Check if ArConnect is already connected
-        if (window.arweaveWallet) {
-            window.arweaveWallet.getActiveAddress()
-                .then(address => {
-                    if (address) {
-                        setWalletAddress(address);
-                        onConnected(AR_CONNECT);
-                    }
-                })
-                .catch(() => {
-                    // ArConnect is available but not connected
-                });
+        if ((walletAddress || useFallback) && onConnected) {
+            onConnected(walletAddress || 'FALLBACK_MODE');
+        } else if (!walletAddress && !useFallback && onDisconnected) {
+            onDisconnected();
         }
-    }, [onConnected]);
+    }, [walletAddress, useFallback, onConnected, onDisconnected]);
 
     /**
-     * Connect to wallet
-     * @param {string} walletName - Wallet type to connect to
+     * Connect to demo wallet 
      */
-    async function connectWallet(walletName) {
-        setConnectingWallet(walletName);
+    async function connectDemoWallet() {
         setError(null);
 
         try {
-            switch (walletName) {
-                case AR_CONNECT:
-                    if (!window.arweaveWallet) {
-                        throw new Error('ArConnect wallet not found. Please install the extension first.');
-                    }
-
-                    await window.arweaveWallet.connect(['ACCESS_ADDRESS', 'SIGN_TRANSACTION', 'DISPATCH']);
-
-                    // Get active address
-                    const address = await window.arweaveWallet.getActiveAddress();
-                    setWalletAddress(address);
-                    break;
-
-                case ARWEAVE_APP:
-                    await webWallet.connect();
-
-                    // Set up event listener for disconnection
-                    webWallet.on('change', () => {
-                        if (!webWallet.address && onDisconnected) {
-                            setWalletAddress('');
-                            onDisconnected();
-                        }
-                    });
-
-                    setWalletAddress(webWallet.address);
-                    break;
-
-                default:
-                    throw new Error(`Attempted to connect unknown wallet ${walletName}`);
-            }
-
-            // Close modal and call success callback
+            await generateTestWallet();
             setIsModalOpen(false);
-            onConnected(walletName);
         } catch (err) {
-            console.error('Error connecting wallet:', err);
-            setError(err.message || 'Failed to connect wallet');
-        } finally {
-            setConnectingWallet(null);
+            console.error('Error connecting to demo wallet:', err);
+            setError(err.message || 'Failed to connect demo wallet');
         }
     }
 
     /**
-     * Disconnect wallet
+     * Reset to normal mode from fallback mode
      */
-    async function disconnectWallet() {
+    async function disableFallbackMode() {
         try {
-            // Disconnect from ArConnect if that's what we're using
-            if (window.arweaveWallet) {
-                await window.arweaveWallet.disconnect();
-            }
-
-            // For arweave.app, the wallet is unloaded when the popup is closed
-            setWalletAddress('');
+            resetFallbackMode();
             onDisconnected();
         } catch (err) {
-            console.error('Error disconnecting wallet:', err);
+            console.error('Error disabling fallback mode:', err);
         }
     }
 
-    // Check if ArConnect is installed
-    const isArConnectInstalled = typeof window !== 'undefined' && !!window.arweaveWallet;
+    /**
+     * Check if ArConnect is installed
+     */
+    function isArConnectInstalled() {
+        return typeof window !== 'undefined' && !!window.arweaveWallet;
+    }
+
+    // Determine what to show based on connection state
+    const showConnected = isInitialized || useFallback || walletAddress;
+    const displayAddress = walletAddress || 'FALLBACK_MODE';
+    const addressText = useFallback ? 'Development Mode' :
+        (displayAddress.length > 10 ?
+            `${displayAddress.slice(0, 5)}...${displayAddress.slice(-5)}` :
+            displayAddress);
 
     return (
         <>
-            {isConnected || walletAddress ? (
+            {showConnected ? (
                 <div className="flex items-center space-x-2">
                     <span className="font-mono text-sm truncate max-w-[140px]">
-                        {walletAddress.slice(0, 5)}...{walletAddress.slice(-5)}
+                        {addressText}
                     </span>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={disconnectWallet}
+                        onClick={useFallback ? disableFallbackMode : () => setIsModalOpen(true)}
                         className={className}
                         {...props}
                     >
-                        Disconnect
+                        {useFallback ? 'Reset Mode' : 'Disconnect'}
                     </Button>
                 </div>
             ) : (
@@ -155,7 +116,7 @@ const WalletConnectButton = ({
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Select Wallet"
+                title="Arweave Storage"
             >
                 <div className="space-y-4 p-4">
                     {error && (
@@ -164,40 +125,55 @@ const WalletConnectButton = ({
                         </div>
                     )}
 
-                    <Button
-                        variant="outline"
-                        fullWidth
-                        onClick={() => connectWallet(AR_CONNECT)}
-                        disabled={connectingWallet !== null || !isArConnectInstalled}
-                        isLoading={connectingWallet === AR_CONNECT}
-                    >
-                        {isArConnectInstalled ? 'ArConnect' : 'ArConnect (Install Extension First)'}
-                    </Button>
-
-                    {!isArConnectInstalled && (
-                        <a
-                            href="https://www.arconnect.io"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-center text-primary text-sm hover:underline mt-1"
-                        >
-                            Install ArConnect Extension
-                        </a>
-                    )}
+                    <div className="mb-4 text-center">
+                        <h3 className="text-lg font-medium mb-2">VeriChain Storage Options</h3>
+                        <p className="text-gray-600 dark:text-gray-300">
+                            VeriChain uses Arweave for permanent, decentralized storage of credential metadata.
+                            Choose how you want to set up storage:
+                        </p>
+                    </div>
 
                     <Button
-                        variant="outline"
+                        variant="primary"
                         fullWidth
-                        onClick={() => connectWallet(ARWEAVE_APP)}
-                        disabled={connectingWallet !== null}
-                        isLoading={connectingWallet === ARWEAVE_APP}
+                        onClick={connectDemoWallet}
+                        disabled={isLoading}
+                        isLoading={isLoading}
+                        className="mb-3"
                     >
-                        Arweave.app (Web Wallet)
+                        Use Demo Storage (Recommended)
                     </Button>
-
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-4">
-                        Select your preferred wallet to connect to VeriChain. Both options allow you to sign transactions and issue certificates.
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center">
+                        For this demo, we&apos;ll create a temporary storage solution.
+                        Your certificates will be stored locally.
                     </p>
+
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h4 className="text-md font-medium mb-3">Production Options</h4>
+
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            onClick={() => window.open('https://www.arweave.org/', '_blank')}
+                            className="mb-3"
+                        >
+                            Learn About Arweave
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            onClick={() => window.open('https://www.arconnect.io/', '_blank')}
+                            className="mb-3"
+                            disabled={!isArConnectInstalled()}
+                        >
+                            {isArConnectInstalled() ? 'Open ArConnect' : 'Install ArConnect'}
+                        </Button>
+
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+                            In a production environment, you would connect to a real Arweave wallet with AR tokens.
+                        </p>
+                    </div>
                 </div>
             </Modal>
         </>

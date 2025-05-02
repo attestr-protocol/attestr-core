@@ -1,16 +1,17 @@
 // components/organisms/certificate/CertificateFormWithStorage.jsx
 import React, { useState, useEffect } from 'react';
 import CertificateForm from './CertificateForm';
-import ArweaveInitializer from '../../molecules/storage/ArweaveInitializer';
+import ArWalletConnector from '../../wallet/ArWalletConnector';
 import { useArweave } from '../../../contexts/ArweaveContext';
-import { useCertificateStorage } from '../../../utils/hooks/useCertificateStorage';
+import { useCertificateContext } from '../../../contexts/CertificateContext';
 import Modal from '../../molecules/modals/Modal';
 import Card from '../../molecules/cards/Card';
-import { ExclamationIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/outline';
+import { CheckCircleIcon, XCircleIcon, ExclamationIcon } from '@heroicons/react/outline';
+import Button from '../../atoms/buttons/Button';
+import { isStorageInitialized } from '../../../utils/storage/arweaveStorage';
 
 /**
- * Enhanced certificate form that integrates with Arweave storage
- * Wraps the regular certificate form with storage initialization and processing
+ * Enhanced certificate form that integrates with AR.io testnet storage
  */
 const CertificateFormWithStorage = ({
     walletAddress,
@@ -18,17 +19,40 @@ const CertificateFormWithStorage = ({
     className = '',
     ...props
 }) => {
-    const { isInitialized } = useArweave();
-    const {
-        storeCertificate,
-        isStoring,
-        error,
-        success,
-        initializeStorage
-    } = useCertificateStorage();
+    const { issueCertificate } = useCertificateContext();
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState(null);
+    const [isArweaveReady, setIsArweaveReady] = useState(false);
+    const [arweaveAddress, setArweaveAddress] = useState(null);
     const [showResult, setShowResult] = useState(false);
     const [result, setResult] = useState(null);
+    const [showStorageInfo, setShowStorageInfo] = useState(true);
+
+    // Check Arweave storage status on mount
+    useEffect(() => {
+        checkArweaveStatus();
+    }, []);
+
+    // Check if Arweave storage is initialized
+    const checkArweaveStatus = async () => {
+        const ready = isStorageInitialized();
+        setIsArweaveReady(ready);
+    };
+
+    // Handle Arweave wallet connected
+    const handleArweaveConnected = (address) => {
+        setArweaveAddress(address);
+        setIsArweaveReady(true);
+        setShowStorageInfo(false);
+    };
+
+    // Handle Arweave wallet disconnected
+    const handleArweaveDisconnected = () => {
+        setArweaveAddress(null);
+        setIsArweaveReady(false);
+        setShowStorageInfo(true);
+    };
 
     // Reset state when result modal is closed
     const handleCloseResult = () => {
@@ -43,17 +67,29 @@ const CertificateFormWithStorage = ({
     // Handle form submission
     const handleSubmit = async (formData) => {
         try {
+            setIsSubmitting(true);
+            setError(null);
+
+            // Check if Arweave storage is ready
+            if (!isArweaveReady) {
+                throw new Error('Arweave storage not initialized. Please connect your AR.io wallet first.');
+            }
+
             // Add issuer wallet address to form data
             const certificateData = {
                 ...formData,
                 issuerWallet: walletAddress,
-                issuerName: 'VeriChain', // Would be pulled from user profile in a real app
+                issuerName: 'VeriChain Institution', // Would be pulled from user profile in a real app
             };
 
-            // Store certificate
-            const result = await storeCertificate(certificateData);
+            // Issue certificate on blockchain with Arweave metadata
+            const result = await issueCertificate(certificateData);
 
-            // Show result modal
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to issue certificate');
+            }
+
+            // Show success result
             setResult(result);
             setShowResult(true);
 
@@ -66,27 +102,48 @@ const CertificateFormWithStorage = ({
                 error: error.message || 'An unexpected error occurred'
             });
             setShowResult(true);
+            setError(error.message || 'Failed to issue certificate');
 
             return { success: false, error: error.message };
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
         <div className={className} {...props}>
-            {/* Show storage initializer if not initialized */}
-            {!isInitialized && (
-                <ArweaveInitializer
-                    onInitialized={() => console.log('Storage initialized')}
-                    className="mb-6"
-                />
+            {/* Arweave Storage Info */}
+            {showStorageInfo && (
+                <Card className="bg-blue-50 dark:bg-blue-900/20 mb-6">
+                    <div className="flex items-start p-4">
+                        <div className="flex-shrink-0">
+                            <ExclamationIcon className="h-5 w-5 text-blue-400" />
+                        </div>
+                        <div className="ml-3">
+                            <h3 className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                AR.io Testnet Storage Required
+                            </h3>
+                            <div className="mt-2 text-sm text-blue-600 dark:text-blue-300">
+                                <p className="mb-3">
+                                    VeriChain needs to connect to the AR.io testnet to store certificate metadata.
+                                    Please connect your AR.io wallet to continue.
+                                </p>
+                                <ArWalletConnector
+                                    onConnected={handleArweaveConnected}
+                                    onDisconnected={handleArweaveDisconnected}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </Card>
             )}
 
             {/* Certificate Form */}
             <CertificateForm
                 onSubmit={handleSubmit}
-                isSubmitting={isStoring}
-                storageInitialized={isInitialized}
-                onInitializeStorage={initializeStorage}
+                isSubmitting={isSubmitting}
+                storageInitialized={isArweaveReady}
+                error={error}
             />
 
             {/* Result Modal */}
@@ -106,31 +163,31 @@ const CertificateFormWithStorage = ({
                                     Certificate Issued Successfully
                                 </h3>
                                 <div className="mt-2 text-sm text-green-700 dark:text-green-400">
-                                    <p className="mb-2">Your certificate has been permanently stored on Arweave and registered on the blockchain.</p>
+                                    <p className="mb-2">Your certificate has been permanently stored on AR.io testnet and registered on the blockchain.</p>
 
                                     <div className="mt-4 space-y-2">
                                         <div>
                                             <p className="font-medium">Certificate ID:</p>
                                             <p className="font-mono text-xs break-all">
-                                                {result?.blockchain?.certificateId}
+                                                {result.certificateId}
                                             </p>
                                         </div>
 
                                         <div>
                                             <p className="font-medium">Arweave Transaction ID:</p>
                                             <p className="font-mono text-xs break-all">
-                                                {result?.arweave?.txId}
+                                                {result.metadataURI?.replace('ar://', '')}
                                             </p>
                                         </div>
 
                                         <div className="pt-2">
                                             <a
-                                                href={`https://${process.env.NEXT_PUBLIC_ARWEAVE_HOST || 'arweave.net'}/${result?.arweave?.txId}`}
+                                                href={`https://ar-io.net/${result.metadataURI?.replace('ar://', '')}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-primary dark:text-primary-light hover:underline"
                                             >
-                                                View on Arweave Explorer
+                                                View on AR.io Explorer
                                             </a>
                                         </div>
                                     </div>
@@ -154,9 +211,10 @@ const CertificateFormWithStorage = ({
                                     <div className="mt-4">
                                         <p className="font-medium">Troubleshooting:</p>
                                         <ul className="list-disc list-inside mt-1 space-y-1">
-                                            <li>Check your wallet connection</li>
-                                            <li>Ensure you have sufficient funds for transaction fees</li>
-                                            <li>Try again in a few moments</li>
+                                            <li>Check your AR.io wallet balance and make sure you have testnet tokens</li>
+                                            <li>Check both your Ethereum and AR.io wallet connections</li>
+                                            <li>Try again with a smaller certificate description</li>
+                                            <li>Reload the page and try again</li>
                                         </ul>
                                     </div>
                                 </div>

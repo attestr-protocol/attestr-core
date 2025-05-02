@@ -1,4 +1,5 @@
-// pages/_app.js with Arweave support
+// pages/_app.js
+
 import '../styles/globals.css';
 import { ThirdwebProvider } from '@thirdweb-dev/react';
 import Layout from '../components/layout/Layout';
@@ -8,10 +9,13 @@ import { CertificateProvider } from '../contexts/CertificateContext';
 import { ArweaveProvider } from '../contexts/ArweaveContext';
 import Head from 'next/head';
 import { useEffect } from 'react';
-import { initializeStorage, isStorageInitialized } from '../utils/storage/arweaveStorage';
-import { loadWalletFromLocalStorage } from '../utils/storage/arweaveWalletUtils';
+import {
+  initializeStorage,
+  isStorageInitialized,
+  loadWalletFromLocalStorage
+} from '../utils/storage/arweaveStorage';
+import { patchCircularJsonIssue } from '../utils/blockchain/thirdwebUtils';
 import { PolygonAmoyTestnet } from "@thirdweb-dev/chains";
-import { patchCircularJsonIssue } from '../utils/thirdwebUtils';
 
 // Initialize Arweave storage with wallet from local storage (for demo purposes)
 const initArweaveStorage = async () => {

@@ -8,7 +8,9 @@ import {
     formatCertificateMetadata,
     getCurrentWalletAddress,
     loadWalletFromLocalStorage,
-    saveWalletToLocalStorage
+    saveWalletToLocalStorage,
+    getTransactionStatus,
+    getGatewayUrl
 } from '../utils/storage/arweaveStorage';
 
 // Create context
@@ -21,6 +23,7 @@ export function ArweaveProvider({ children }) {
     const [error, setError] = useState(null);
     const [walletAddress, setWalletAddress] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [pendingTxs, setPendingTxs] = useState([]);
 
     // Check initial storage state
     useEffect(() => {
@@ -52,7 +55,7 @@ export function ArweaveProvider({ children }) {
                         if (success) {
                             const address = await getCurrentWalletAddress();
                             setWalletAddress(address);
-                            showSuccessMessage('Arweave storage initialized from saved wallet');
+                            showSuccessMessage('AR.io wallet initialized from saved wallet');
                         }
                     } catch (err) {
                         console.error('Error loading saved wallet:', err);
@@ -66,6 +69,51 @@ export function ArweaveProvider({ children }) {
         loadSavedWallet();
     }, []);
 
+    // Monitor pending transactions
+    useEffect(() => {
+        if (pendingTxs.length === 0) {
+            return;
+        }
+
+        const checkTxStatus = async () => {
+            const updatedPendingTxs = [...pendingTxs];
+            let changed = false;
+
+            for (let i = 0; i < updatedPendingTxs.length; i++) {
+                const tx = updatedPendingTxs[i];
+
+                try {
+                    const status = await getTransactionStatus(tx.id);
+
+                    if (status.confirmed) {
+                        // Transaction confirmed, remove from pending
+                        updatedPendingTxs.splice(i, 1);
+                        i--;
+                        changed = true;
+
+                        showSuccessMessage(`Transaction ${tx.id.substring(0, 8)}... confirmed!`);
+                    } else if (status.status && status.status !== tx.status) {
+                        // Status changed but not confirmed
+                        updatedPendingTxs[i] = { ...tx, status: status.status };
+                        changed = true;
+                    }
+                } catch (err) {
+                    console.warn(`Error checking status for tx ${tx.id}:`, err);
+                }
+            }
+
+            if (changed) {
+                setPendingTxs(updatedPendingTxs);
+            }
+        };
+
+        // Check immediately and then every 30 seconds
+        checkTxStatus();
+        const interval = setInterval(checkTxStatus, 30000);
+
+        return () => clearInterval(interval);
+    }, [pendingTxs]);
+
     // Helper for showing temporary success messages
     const showSuccessMessage = (message) => {
         setSuccessMessage(message);
@@ -78,6 +126,7 @@ export function ArweaveProvider({ children }) {
         setError(null);
 
         try {
+            // If already initialized, just return success
             if (isInitialized) {
                 return true;
             }
@@ -89,20 +138,15 @@ export function ArweaveProvider({ children }) {
                 const address = await getCurrentWalletAddress();
                 setWalletAddress(address);
 
-                // Save wallet to local storage for development convenience
-                if (process.env.NODE_ENV === 'development') {
-                    saveWalletToLocalStorage(wallet);
-                }
-
-                showSuccessMessage('Arweave storage initialized successfully');
+                showSuccessMessage('AR.io wallet initialized successfully');
+                return true;
             } else {
-                setError('Failed to initialize Arweave storage');
+                setError('Failed to initialize AR.io wallet');
+                return false;
             }
-
-            return success;
         } catch (err) {
-            console.error('Error initializing Arweave storage:', err);
-            setError(err.message || 'Failed to initialize Arweave storage');
+            console.error('Error initializing AR.io wallet:', err);
+            setError(err.message || 'Failed to initialize AR.io wallet');
             return false;
         } finally {
             setIsLoading(false);
@@ -116,13 +160,24 @@ export function ArweaveProvider({ children }) {
 
         try {
             if (!isInitialized) {
-                throw new Error('Arweave storage not initialized');
+                throw new Error('AR.io wallet not initialized');
             }
 
+            // Format metadata
             const formattedMetadata = formatCertificateMetadata(certificateData);
+
+            // Store on AR.io testnet
             const txId = await storeCertificateMetadata(formattedMetadata);
 
-            showSuccessMessage(`Certificate stored successfully with ID: ${txId}`);
+            // Add to pending transactions
+            setPendingTxs(prev => [...prev, {
+                id: txId,
+                type: 'certificate',
+                timestamp: Date.now(),
+                status: 'pending'
+            }]);
+
+            showSuccessMessage(`Certificate stored with ID: ${txId}`);
 
             return {
                 success: true,
@@ -149,6 +204,10 @@ export function ArweaveProvider({ children }) {
         setError(null);
 
         try {
+            if (!isInitialized) {
+                throw new Error('AR.io wallet not initialized');
+            }
+
             const metadata = await retrieveCertificateMetadata(arweaveIdOrUri);
 
             return {
@@ -166,37 +225,24 @@ export function ArweaveProvider({ children }) {
         } finally {
             setIsLoading(false);
         }
-    }, []);
-
-    // Generate a test wallet
-    const generateTestWallet = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            // This will create a new wallet and initialize storage with it
-            const success = await initialize();
-
-            if (success) {
-                showSuccessMessage('Test wallet generated and storage initialized');
-            } else {
-                throw new Error('Failed to generate test wallet');
-            }
-
-            return success;
-        } catch (err) {
-            console.error('Error generating test wallet:', err);
-            setError(err.message || 'Failed to generate test wallet');
-            return false;
-        } finally {
-            setIsLoading(false);
-        }
-    }, [initialize]);
+    }, [isInitialized]);
 
     // Reset state
     const resetState = useCallback(() => {
         setError(null);
         setSuccessMessage(null);
+    }, []);
+
+    // Disconnect wallet
+    const disconnectWallet = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('verichain_arweave_wallet');
+        }
+
+        setIsInitialized(false);
+        setWalletAddress(null);
+
+        showSuccessMessage('AR.io wallet disconnected');
     }, []);
 
     // Create the context value
@@ -206,11 +252,12 @@ export function ArweaveProvider({ children }) {
         error,
         walletAddress,
         successMessage,
+        pendingTxs,
         initialize,
         storeCertificate,
         retrieveCertificate,
-        generateTestWallet,
         resetState,
+        disconnectWallet,
         formatCertificateMetadata
     };
 

@@ -1,4 +1,4 @@
-// utils/hooks/useCertificate.js
+// utils/hooks/useCertificate.js (updated for AR.io)
 import { useState, useCallback, useEffect } from 'react';
 import {
     issueCertificate,
@@ -10,14 +10,13 @@ import {
     formatCertificateMetadata,
     storeCertificateMetadata,
     retrieveCertificateMetadata,
-    initializeStorage,
     isStorageInitialized,
     getCurrentWalletAddress
 } from '../storage/arweaveStorage';
 import { getProvider } from '../blockchain/walletUtils';
 
 /**
- * Custom hook for certificate operations
+ * Custom hook for certificate operations with AR.io integration
  * @returns {Object} Certificate functions and state
  */
 export const useCertificate = () => {
@@ -25,10 +24,25 @@ export const useCertificate = () => {
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [storageInitialized, setStorageInitialized] = useState(false);
+    const [arweaveAddress, setArweaveAddress] = useState(null);
 
     // Check storage initialized state on mount
     useEffect(() => {
-        setStorageInitialized(isStorageInitialized());
+        const checkStorage = async () => {
+            const initialized = isStorageInitialized();
+            setStorageInitialized(initialized);
+
+            if (initialized) {
+                try {
+                    const address = await getCurrentWalletAddress();
+                    setArweaveAddress(address);
+                } catch (error) {
+                    console.warn('Could not get current AR.io wallet address', error);
+                }
+            }
+        };
+
+        checkStorage();
     }, []);
 
     // Helper to show and auto-hide success messages
@@ -36,37 +50,6 @@ export const useCertificate = () => {
         setSuccessMessage(message);
         setTimeout(() => setSuccessMessage(null), 5000);
     };
-
-    // Initialize Arweave storage
-    const initializeArweaveStorage = useCallback(async (jwkOrToken) => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            // Skip if already initialized
-            if (storageInitialized) {
-                console.log('Storage already initialized');
-                return true;
-            }
-
-            console.log('Initializing Arweave storage...');
-            const result = await initializeStorage(jwkOrToken);
-
-            if (result) {
-                setStorageInitialized(true);
-                showSuccess('Arweave storage initialized successfully');
-                return true;
-            } else {
-                throw new Error('Failed to initialize Arweave storage');
-            }
-        } catch (error) {
-            console.error('Error initializing Arweave storage:', error);
-            setError('Failed to initialize storage: ' + (error.message || 'Unknown error'));
-            return false;
-        } finally {
-            setIsLoading(false);
-        }
-    }, [storageInitialized]);
 
     // Issue a new certificate
     const issueNewCertificate = useCallback(async (certificateData) => {
@@ -76,13 +59,8 @@ export const useCertificate = () => {
 
         try {
             // Make sure storage is initialized
-            if (!storageInitialized) {
-                // For development, can auto-initialize with a temporary wallet
-                // In production, should have proper wallet management
-                const initialized = await initializeArweaveStorage();
-                if (!initialized) {
-                    throw new Error('Arweave storage not initialized. Please initialize storage first.');
-                }
+            if (!isStorageInitialized()) {
+                throw new Error('AR.io storage not initialized. Please initialize your AR.io wallet first.');
             }
 
             // Get current wallet if not provided
@@ -105,8 +83,8 @@ export const useCertificate = () => {
                 issuerWallet,
             });
 
-            // Store metadata on Arweave
-            console.log('Storing certificate metadata on Arweave...');
+            // Store metadata on AR.io
+            console.log('Storing certificate metadata on AR.io testnet...');
             const txId = await storeCertificateMetadata(metadata);
             const metadataURI = `ar://${txId}`;
             console.log('Metadata stored with URI:', metadataURI);
@@ -135,7 +113,7 @@ export const useCertificate = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [storageInitialized, initializeArweaveStorage]);
+    }, []);
 
     // Verify a certificate
     const verifyExistingCertificate = useCallback(async (certificateId) => {
@@ -192,20 +170,17 @@ export const useCertificate = () => {
 
             const certificates = await getCertificatesForRecipient(walletAddress);
 
-            // Try to enhance certificates with metadata if available
-            return await Promise.all(
-                certificates.map(async (cert) => {
-                    // Add a status property for UI purposes
-                    let status = 'valid';
-                    if (!cert.isValid) {
-                        status = cert.revoked ? 'revoked' : 'invalid';
-                    } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
-                        status = 'expired';
-                    }
+            // Add a status property for UI purposes
+            return certificates.map(cert => {
+                let status = 'valid';
+                if (!cert.isValid) {
+                    status = cert.revoked ? 'revoked' : 'invalid';
+                } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
+                    status = 'expired';
+                }
 
-                    return { ...cert, status };
-                })
-            );
+                return { ...cert, status };
+            });
         } catch (error) {
             console.error('Error getting certificates:', error);
             setError(error.message || 'An error occurred while fetching certificates');
@@ -227,20 +202,17 @@ export const useCertificate = () => {
 
             const certificates = await getCertificatesForIssuer(walletAddress);
 
-            // Try to enhance certificates with metadata if available
-            return await Promise.all(
-                certificates.map(async (cert) => {
-                    // Add a status property for UI purposes
-                    let status = 'valid';
-                    if (!cert.isValid) {
-                        status = cert.revoked ? 'revoked' : 'invalid';
-                    } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
-                        status = 'expired';
-                    }
+            // Add a status property for UI purposes
+            return certificates.map(cert => {
+                let status = 'valid';
+                if (!cert.isValid) {
+                    status = cert.revoked ? 'revoked' : 'invalid';
+                } else if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
+                    status = 'expired';
+                }
 
-                    return { ...cert, status };
-                })
-            );
+                return { ...cert, status };
+            });
         } catch (error) {
             console.error('Error getting issued certificates:', error);
             setError(error.message || 'An error occurred while fetching issued certificates');
@@ -251,33 +223,32 @@ export const useCertificate = () => {
     }, []);
 
     // Check if storage is already initialized
-    const checkStorageStatus = useCallback(() => {
+    const checkStorageStatus = useCallback(async () => {
         const initialized = isStorageInitialized();
         setStorageInitialized(initialized);
+
+        if (initialized) {
+            try {
+                const address = await getCurrentWalletAddress();
+                setArweaveAddress(address);
+            } catch (error) {
+                console.warn('Could not get current AR.io wallet address', error);
+            }
+        }
+
         return initialized;
     }, []);
 
-    // Get the current wallet address
-    const getArweaveAddress = useCallback(async () => {
-        try {
-            return await getCurrentWalletAddress();
-        } catch (error) {
-            console.error('Error getting Arweave wallet address:', error);
-            return null;
-        }
-    }, []);
-
     return {
-        initializeArweaveStorage,
         issueNewCertificate,
         verifyExistingCertificate,
         getRecipientCertificates,
         getIssuerCertificates,
         checkStorageStatus,
-        getArweaveAddress,
+        arweaveAddress,
         isLoading,
         error,
         successMessage,
         storageInitialized
     };
-};
+}
