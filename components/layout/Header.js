@@ -14,20 +14,21 @@ import {
 } from '@heroicons/react/outline';
 import { useTheme } from '../../contexts/ThemeContext';
 import Button from '../atoms/buttons/Button';
+import { formatAddress } from '../../utils/formatting/addressFormat';
 
 /**
  * Header component for the application
  * 
  * @param {Object} props
- * @param {boolean} props.isOpen - Whether mobile menu is open
- * @param {Function} props.setIsOpen - Function to set mobile menu state
+ * @param {boolean} props.isMenuOpen - Whether mobile menu is open
+ * @param {Function} props.setIsMenuOpen - Function to set mobile menu state
  * @param {string} props.walletAddress - Connected wallet address
  * @param {Function} props.connectWallet - Function to connect wallet
  * @param {Function} props.disconnectWallet - Function to disconnect wallet
  */
 const Header = ({
-    isOpen,
-    setIsOpen,
+    isMenuOpen,
+    setIsMenuOpen,
     walletAddress,
     connectWallet,
     disconnectWallet,
@@ -63,7 +64,7 @@ const Header = ({
                                     key={item.name}
                                     href={item.href}
                                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all
-                                    ${router.pathname === item.href
+                  ${router.pathname === item.href
                                             ? 'border-secondary text-secondary dark:text-secondary-light'
                                             : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600'
                                         }`}
@@ -89,24 +90,27 @@ const Header = ({
                             )}
                         </button>
 
-                        {/* Connect Wallet Button */}
+                        {/* Wallet Button */}
                         <Button
                             variant={walletAddress ? 'outline' : 'primary'}
                             size="sm"
                             onClick={walletAddress ? disconnectWallet : connectWallet}
                         >
-                            {walletAddress ? 'Disconnect' : 'Connect Wallet'}
+                            {walletAddress
+                                ? `${formatAddress(walletAddress, 4, 4)}`
+                                : 'Connect Wallet'
+                            }
                         </Button>
 
                         {/* Mobile menu button */}
                         <div className="md:hidden">
                             <button
-                                onClick={() => setIsOpen(!isOpen)}
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 className="p-2 rounded-md text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-light transition-colors"
-                                aria-expanded={isOpen}
+                                aria-expanded={isMenuOpen}
                                 aria-label="Toggle menu"
                             >
-                                {isOpen ? (
+                                {isMenuOpen ? (
                                     <XIcon className="h-6 w-6" />
                                 ) : (
                                     <MenuIcon className="h-6 w-6" />
@@ -118,7 +122,7 @@ const Header = ({
             </div>
 
             {/* Mobile menu */}
-            <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
+            <div className={`${isMenuOpen ? 'block' : 'hidden'} md:hidden`}>
                 <div className="py-2 space-y-1 border-t border-gray-200 dark:border-gray-700">
                     {navigation.map((item) => (
                         <Link
@@ -129,7 +133,7 @@ const Header = ({
                                     ? 'bg-primary-light bg-opacity-10 text-primary dark:text-primary-light border-l-4 border-primary dark:border-primary-light'
                                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-light border-l-4 border-transparent'
                                 }`}
-                            onClick={() => setIsOpen(false)}
+                            onClick={() => setIsMenuOpen(false)}
                         >
                             <item.icon className="h-5 w-5 mr-3" aria-hidden="true" />
                             {item.name}

@@ -1,8 +1,8 @@
 // components/layout/Layout.js
-import React, { useState } from 'react';
+import React from 'react';
 import Header from './Header';
 import Footer from './Footer';
-import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react';
+import { useWalletContext } from '../../contexts/WalletContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 /**
@@ -12,24 +12,26 @@ import { useTheme } from '../../contexts/ThemeContext';
  * @param {React.ReactNode} props.children - Page content
  */
 const Layout = ({ children, className = '', ...props }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
     // Theme context
     const { darkMode } = useTheme();
 
-    // Wallet connection
-    const address = useAddress();
-    const connectWithMetamask = useMetamask();
-    const disconnectWallet = useDisconnect();
+    // Wallet context
+    const {
+        address,
+        connect: connectWallet,
+        disconnect: disconnectWallet
+    } = useWalletContext();
 
     return (
         <div className="min-h-screen flex flex-col bg-white dark:bg-dark text-gray-900 dark:text-white transition-colors duration-200">
             {/* Navigation */}
             <Header
-                isOpen={isOpen}
-                setIsOpen={setIsOpen}
+                isMenuOpen={isMenuOpen}
+                setIsMenuOpen={setIsMenuOpen}
                 walletAddress={address}
-                connectWallet={connectWithMetamask}
+                connectWallet={connectWallet}
                 disconnectWallet={disconnectWallet}
             />
 

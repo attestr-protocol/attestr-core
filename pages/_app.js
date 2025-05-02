@@ -10,9 +10,9 @@ import { ArweaveProvider } from '../contexts/ArweaveContext';
 import Head from 'next/head';
 import { useEffect } from 'react';
 import {
-  initializeStorage,
   isStorageInitialized,
-  loadWalletFromLocalStorage
+  loadWalletFromLocalStorage,
+  initializeStorage
 } from '../utils/storage/arweaveStorage';
 import { patchCircularJsonIssue } from '../utils/blockchain/thirdwebUtils';
 import { PolygonAmoyTestnet } from "@thirdweb-dev/chains";
@@ -52,22 +52,6 @@ const initArweaveStorage = async () => {
   }
 };
 
-// Define custom chain configuration for Polygon Amoy Testnet
-const PolygonAmoy = {
-  chainId: parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10),
-  name: process.env.NEXT_PUBLIC_CHAIN_NAME,
-  symbol: 'MATIC',
-  decimals: 18,
-  rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL],
-  blockExplorers: [
-    {
-      name: process.env.NEXT_PUBLIC_EXPLORER_NAME,
-      url: process.env.NEXT_PUBLIC_EXPLORER_URL,
-    },
-  ],
-  testnet: true,
-};
-
 function MyApp({ Component, pageProps }) {
   // Initialize Arweave storage on client side
   useEffect(() => {
@@ -85,7 +69,6 @@ function MyApp({ Component, pageProps }) {
       </Head>
 
       <ThirdwebProvider
-        // Number of activeChains and supportedChains will be increased in the future
         activeChain={PolygonAmoyTestnet}
         supportedChains={[PolygonAmoyTestnet]}
         clientId={process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID}

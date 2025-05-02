@@ -1,10 +1,10 @@
-// pages/issue/index.js with Arweave integration
+// pages/issue/index.js
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useWalletContext } from '../../contexts/WalletContext';
-import CertificateFormWithStorage from '../../components/organisms/certificate/CertificateFormWithStorage';
-import WalletConnect from '../../components/organisms/wallet/WalletConnect';
+import CertificateForm from '../../components/organisms/certificate/CertificateForm';
+import WalletManager from '../../components/organisms/wallet/WalletManager';
 import { InformationCircleIcon } from '@heroicons/react/outline';
 
 export default function IssuePage() {
@@ -17,9 +17,9 @@ export default function IssuePage() {
         setIssuanceSuccess(result);
 
         // Redirect to the certificate detail page after successful issuance
-        if (result.success && result.blockchain?.certificateId) {
+        if (result.success && result.certificateId) {
             setTimeout(() => {
-                router.push(`/verify/${result.blockchain.certificateId}`);
+                router.push(`/verify/${result.certificateId}`);
             }, 2000);
         }
     };
@@ -35,7 +35,7 @@ export default function IssuePage() {
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold">Issue New Certificate</h1>
                     <p className="text-gray-600 dark:text-gray-300">
-                        Create and issue a new blockchain-verified credential with permanent storage on Arweave.
+                        Create and issue a new blockchain-verified credential with permanent storage.
                     </p>
                 </div>
 
@@ -57,18 +57,17 @@ export default function IssuePage() {
 
                 {/* Main Content */}
                 {address ? (
-                    <CertificateFormWithStorage
+                    <CertificateForm
                         walletAddress={address}
                         onIssued={handleIssued}
                     />
                 ) : (
-                    <WalletConnect
-                        onConnect={connect}
-                        onDisconnect={disconnect}
+                    <WalletManager
+                        onBlockchainConnect={connect}
+                        showBoth={true}
+                        activeTab="blockchain"
                     />
                 )}
-
-                {/* Success/Error notification already handled within CertificateFormWithStorage */}
             </div>
         </>
     );

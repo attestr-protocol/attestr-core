@@ -13,7 +13,6 @@ import {
 } from '@heroicons/react/outline';
 import Card from '../../molecules/cards/Card';
 import Status from '../../atoms/display/Status';
-import Badge from '../../atoms/display/Badge';
 import Button from '../../atoms/buttons/Button';
 import { formatDate } from '../../../utils/formatting/dateFormat';
 
@@ -72,7 +71,7 @@ const VerificationResult = ({
         valid: {
             icon: CheckCircleIcon,
             title: 'Certificate Verified',
-            description: 'This certificate has been verified as authentic on the blockchain with permanent storage on Arweave.',
+            description: 'This certificate has been verified as authentic on the blockchain.',
             color: 'success',
         },
         invalid: {
@@ -335,7 +334,7 @@ const VerificationResult = ({
             </Card>
 
             {/* Record Verification Section */}
-            {onRecordVerification && (
+            {onRecordVerification && status === 'valid' && (
                 <Card
                     variant="outline"
                     className="max-w-3xl mx-auto"
@@ -395,18 +394,12 @@ const VerificationResult = ({
                     ) : (
                         <Button
                             onClick={onRecordVerification}
-                            disabled={isRecording || status !== 'valid'}
+                            disabled={isRecording}
                             variant="primary"
                             isLoading={isRecording}
                         >
                             {isRecording ? 'Recording Verification...' : 'Record My Verification'}
                         </Button>
-                    )}
-
-                    {status !== 'valid' && !verificationResult && (
-                        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                            You can only record verification for valid certificates.
-                        </p>
                     )}
                 </Card>
             )}

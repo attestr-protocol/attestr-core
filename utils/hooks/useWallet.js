@@ -8,7 +8,8 @@ import {
     onAccountsChanged,
     onChainChanged
 } from '../blockchain/walletUtils';
-import { isVerifiedIssuer } from '../blockchain/certificateUtils';
+// Update import to use certificateService instead of certificateUtils
+import { certificateService } from '../certificate/certificateService';
 
 /**
  * Custom hook for wallet management with enhanced error handling
@@ -45,7 +46,8 @@ export const useWallet = () => {
     const checkIsIssuer = useCallback(async () => {
         if (address) {
             try {
-                const verified = await isVerifiedIssuer(address);
+                // Updated to use certificateService instead of the direct import
+                const verified = await certificateService.isVerifiedIssuer(address);
                 setIsIssuer(verified);
             } catch (error) {
                 console.error('Error checking if address is a verified issuer:', error);

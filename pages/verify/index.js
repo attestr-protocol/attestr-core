@@ -1,10 +1,9 @@
-// pages/verify/index.js - Update the TextInput usage
+// pages/verify/index.js
 import { useState } from 'react';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import { SearchIcon, QrcodeIcon, InformationCircleIcon } from '@heroicons/react/outline';
 import { useCertificateContext } from '../../contexts/CertificateContext';
-import { useVerification } from '../../utils/hooks/useVerification';
 import Card from '../../components/molecules/cards/Card';
 import Button from '../../components/atoms/buttons/Button';
 import TextInput from '../../components/atoms/inputs/TextInput';
@@ -12,16 +11,13 @@ import VerificationResult from '../../components/organisms/verification/Verifica
 
 export default function VerifyPage() {
     const router = useRouter();
-    const { verifyExistingCertificate, isLoading } = useCertificateContext();
-    const {
-        recordCertificateVerification,
-        isRecording,
-        verificationResult: recordingResult
-    } = useVerification();
+    const { verifyCertificate, recordVerification, isLoading } = useCertificateContext();
 
     const [certificateId, setCertificateId] = useState('');
     const [verificationResult, setVerificationResult] = useState(null);
     const [error, setError] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingResult, setRecordingResult] = useState(null);
 
     // Handle certificate verification
     const handleVerify = async (e) => {
@@ -33,22 +29,10 @@ export default function VerifyPage() {
 
         setError(null);
         const trimmedId = certificateId.trim();
-        const result = await verifyExistingCertificate(trimmedId);
+        const result = await verifyCertificate(trimmedId);
 
         if (result.success) {
-            // Determine certificate status
-            let status = 'valid';
-            if (!result.isValid) {
-                status = result.revoked ? 'revoked' : 'invalid';
-            } else if (result.expiryDate && new Date(result.expiryDate) < new Date()) {
-                status = 'expired';
-            }
-
-            setVerificationResult({
-                certificate: result,
-                metadata: result.metadata,
-                status: status
-            });
+            setVerificationResult(result);
         } else {
             setError(result.error || 'Certificate not found');
             setVerificationResult(null);
@@ -57,8 +41,20 @@ export default function VerifyPage() {
 
     // Handle record verification
     const handleRecordVerification = async () => {
-        if (verificationResult?.certificate?.certificateId) {
-            await recordCertificateVerification(verificationResult.certificate.certificateId);
+        if (verificationResult?.certificateId) {
+            setIsRecording(true);
+
+            try {
+                const result = await recordVerification(verificationResult.certificateId);
+                setRecordingResult(result);
+            } catch (err) {
+                setRecordingResult({
+                    success: false,
+                    error: err.message || 'Failed to record verification'
+                });
+            } finally {
+                setIsRecording(false);
+            }
         }
     };
 
@@ -151,7 +147,7 @@ export default function VerifyPage() {
                 )}
 
                 {/* Verification Result */}
-                {verificationResult && (
+                {!isLoading && verificationResult && (
                     <div className="mt-6">
                         <div className="text-center mb-8">
                             <Button
@@ -164,7 +160,7 @@ export default function VerifyPage() {
                         </div>
 
                         <VerificationResult
-                            certificate={verificationResult.certificate}
+                            certificate={verificationResult}
                             metadata={verificationResult.metadata}
                             status={verificationResult.status}
                             onRecordVerification={handleRecordVerification}

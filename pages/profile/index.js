@@ -1,10 +1,11 @@
-// pages/profile/index.js with Arweave integration
+// pages/profile/index.js 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useWalletContext } from '../../contexts/WalletContext';
-import CertificateListWithArweave from '../../components/organisms/certificate/CertificateListWithArweave';
-import WalletInfo from '../../components/organisms/wallet/WalletInfo';
+import { useCertificateContext } from '../../contexts/CertificateContext';
+import CertificateList from '../../components/organisms/certificate/CertificateList';
+import WalletManager from '../../components/organisms/wallet/WalletManager';
 import Card from '../../components/molecules/cards/Card';
 import Button from '../../components/atoms/buttons/Button';
 import { SwitchHorizontalIcon } from '@heroicons/react/outline';
@@ -12,6 +13,7 @@ import { SwitchHorizontalIcon } from '@heroicons/react/outline';
 export default function ProfilePage() {
     const router = useRouter();
     const { address, connect, disconnect } = useWalletContext();
+    const { loadUserCertificates } = useCertificateContext();
     const [viewRole, setViewRole] = useState('recipient');
 
     // Handle certificate view action
@@ -51,23 +53,23 @@ export default function ProfilePage() {
         <>
             <Head>
                 <title>Profile & Wallet | VeriChain</title>
-                <meta name="description" content="Manage your blockchain credentials and Arweave storage" />
+                <meta name="description" content="Manage your blockchain credentials" />
             </Head>
 
             <div className="max-w-6xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold">Profile & Wallet</h1>
                     <p className="text-gray-600 dark:text-gray-300">
-                        Manage your blockchain identity, credentials, and Arweave storage.
+                        Manage your blockchain identity and credentials.
                     </p>
                 </div>
 
                 {address ? (
                     <div className="space-y-8">
                         {/* Wallet Information */}
-                        <WalletInfo
-                            address={address}
-                            onDisconnect={disconnect}
+                        <WalletManager
+                            showBoth={true}
+                            activeTab="blockchain"
                         />
 
                         {/* Certificate View Toggle */}
@@ -85,7 +87,7 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Certificate List */}
-                        <CertificateListWithArweave
+                        <CertificateList
                             walletAddress={address}
                             role={viewRole}
                             onShareCertificate={handleShareCertificate}
@@ -97,7 +99,7 @@ export default function ProfilePage() {
                     <Card className="text-center py-12 max-w-md mx-auto">
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Connect Your Wallet</h2>
                         <p className="text-gray-600 dark:text-gray-300 mb-6">
-                            Connect your wallet to view and manage your blockchain credentials and Arweave storage.
+                            Connect your wallet to view and manage your blockchain credentials.
                         </p>
                         <div className="flex justify-center">
                             <Button
