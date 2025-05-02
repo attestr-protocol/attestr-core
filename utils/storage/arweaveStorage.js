@@ -1,10 +1,9 @@
 // utils/storage/arweaveStorage.js
 import Arweave from 'arweave';
-import { JWKInterface } from 'arweave/node/lib/wallet';
 
 // Initialize Arweave instance
 const arweave = Arweave.init({
-    host: 'arweave.net',
+    host: process.env.NEXT_PUBLIC_ARWEAVE_HOST || 'arweave.net',
     port: 443,
     protocol: 'https',
     timeout: 20000,
@@ -17,7 +16,7 @@ let isInitialized = false;
 
 /**
  * Initialize storage with Arweave wallet
- * @param {string} key - JWK key for the Arweave wallet (can be an auth token for wrapper services)
+ * @param {Object|string} key - JWK key for the Arweave wallet (can be an auth token for wrapper services)
  * @returns {Promise<boolean>} - Whether initialization was successful
  */
 export async function initializeStorage(key) {
@@ -207,7 +206,7 @@ export function getGatewayUrl(txId) {
     }
     // Clean the ID if it includes the ar:// prefix
     const cleanId = txId.replace('ar://', '');
-    return `https://arweave.net/${cleanId}`;
+    return `https://${process.env.NEXT_PUBLIC_ARWEAVE_HOST || 'arweave.net'}/${cleanId}`;
 }
 
 /**
@@ -230,6 +229,40 @@ export async function getCurrentWalletAddress() {
         return await arweave.wallets.jwkToAddress(wallet);
     } catch (error) {
         console.error('Error getting wallet address:', error);
+        return null;
+    }
+}
+
+/**
+ * Save wallet to local storage (for demo/development purposes only)
+ * @param {Object} wallet - JWK wallet object
+ */
+export function saveWalletToLocalStorage(wallet) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        localStorage.setItem('verichain_arweave_wallet', JSON.stringify(wallet));
+    } catch (error) {
+        console.error('Error saving wallet to local storage:', error);
+    }
+}
+
+/**
+ * Load wallet from local storage (for demo/development purposes only)
+ * @returns {Object|null} JWK wallet object or null if not found
+ */
+export function loadWalletFromLocalStorage() {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    try {
+        const storedWallet = localStorage.getItem('verichain_arweave_wallet');
+        return storedWallet ? JSON.parse(storedWallet) : null;
+    } catch (error) {
+        console.error('Error loading wallet from local storage:', error);
         return null;
     }
 }

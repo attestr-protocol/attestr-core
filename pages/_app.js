@@ -1,10 +1,11 @@
-// pages/_app.js
+// pages/_app.js with Arweave support
 import '../styles/globals.css';
 import { ThirdwebProvider } from '@thirdweb-dev/react';
 import Layout from '../components/layout/Layout';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { WalletProvider } from '../contexts/WalletContext';
 import { CertificateProvider } from '../contexts/CertificateContext';
+import { ArweaveProvider } from '../contexts/ArweaveContext';
 import Head from 'next/head';
 import { useEffect } from 'react';
 import { initializeStorage, isStorageInitialized } from '../utils/storage/arweaveStorage';
@@ -93,11 +94,13 @@ function MyApp({ Component, pageProps }) {
       >
         <ThemeProvider>
           <WalletProvider>
-            <CertificateProvider>
-              <Layout>
-                <Component {...pageProps} />
-              </Layout>
-            </CertificateProvider>
+            <ArweaveProvider>
+              <CertificateProvider>
+                <Layout>
+                  <Component {...pageProps} />
+                </Layout>
+              </CertificateProvider>
+            </ArweaveProvider>
           </WalletProvider>
         </ThemeProvider>
       </ThirdwebProvider>

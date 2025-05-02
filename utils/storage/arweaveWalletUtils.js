@@ -1,9 +1,9 @@
 // utils/storage/arweaveWalletUtils.js
 import Arweave from 'arweave';
 
-// Initialize Arweave instance
+// Initialize Arweave instance with configurable host
 const arweave = Arweave.init({
-    host: 'arweave.net',
+    host: process.env.NEXT_PUBLIC_ARWEAVE_HOST || 'arweave.net',
     port: 443,
     protocol: 'https',
     timeout: 20000,
@@ -106,40 +106,6 @@ export async function postTransaction(transaction) {
 }
 
 /**
- * Save wallet to local storage (for demo/development purposes only)
- * @param {Object} wallet JWK wallet object
- */
-export function saveWalletToLocalStorage(wallet) {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    try {
-        localStorage.setItem('verichain_arweave_wallet', JSON.stringify(wallet));
-    } catch (error) {
-        console.error('Error saving wallet to local storage:', error);
-    }
-}
-
-/**
- * Load wallet from local storage (for demo/development purposes only)
- * @returns {Object|null} JWK wallet object or null if not found
- */
-export function loadWalletFromLocalStorage() {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    try {
-        const storedWallet = localStorage.getItem('verichain_arweave_wallet');
-        return storedWallet ? JSON.parse(storedWallet) : null;
-    } catch (error) {
-        console.error('Error loading wallet from local storage:', error);
-        return null;
-    }
-}
-
-/**
  * Check if a transaction is confirmed
  * @param {string} txId Transaction ID
  * @returns {Promise<Object>} Transaction confirmation status
@@ -177,39 +143,56 @@ export async function getTransactionStatus(txId) {
 export async function getTransactionHistory(address) {
     try {
         // This would need GraphQL in a full implementation
-        // Simplified for this example
         const query = `
         query {
             transactions(
-            owners: ["${address}"]
-            first: 10
+                owners: ["${address}"]
+                first: 10
             ) {
-            edges {
-                node {
-                id
-                owner { address }
-                recipient
-                tags {
-                    name
-                    value
+                edges {
+                    node {
+                        id
+                        owner { address }
+                        recipient
+                        tags {
+                            name
+                            value
+                        }
+                        block {
+                            height
+                            timestamp
+                        }
+                        data {
+                            size
+                        }
+                    }
                 }
-                block {
-                    height
-                    timestamp
-                }
-                data {
-                    size
-                }
-                }
-            }
             }
         }
         `;
 
-        // This is a simplified implementation
-        // In a production app, you would use the Arweave GraphQL endpoint
-        console.log('Transaction history query not implemented yet');
-        return [];
+        // Using fetch to make the GraphQL request
+        const response = await fetch(`https://${process.env.NEXT_PUBLIC_ARWEAVE_HOST || 'arweave.net'}/graphql`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`GraphQL request failed: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        return result.data.transactions.edges.map(edge => ({
+            id: edge.node.id,
+            owner: edge.node.owner.address,
+            tags: edge.node.tags,
+            blockHeight: edge.node.block?.height,
+            timestamp: edge.node.block?.timestamp,
+            dataSize: edge.node.data?.size
+        }));
     } catch (error) {
         console.error('Error getting transaction history:', error);
         return [];
