@@ -102,7 +102,7 @@ const CertificateForm = ({
             </h3>
             <p className="text-blue-600 dark:text-blue-300 mb-4">
               Before issuing certificates, we need to set up Arweave storage for permanent metadata storage.
-              For this demo, we'll create a temporary Arweave wallet for you.
+              For this demo, we&apos;ll create a temporary Arweave wallet for you.
             </p>
 
             <div className="mt-4">
