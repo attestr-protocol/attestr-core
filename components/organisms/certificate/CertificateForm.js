@@ -14,14 +14,12 @@ import Button from '../../atoms/buttons/Button';
  * @param {Object} props
  * @param {Function} props.onSubmit - Submit callback
  * @param {boolean} props.isSubmitting - Whether form is submitting
- * @param {boolean} props.isStorageInitializing - Whether storage is being initialized
- * @param {boolean} props.storageInitialized - Whether storage has been initialized
- * @param {Function} props.onInitializeStorage - Callback to initialize storage
+ * @param {boolean} props.storageInitialized - Whether Arweave storage has been initialized
+ * @param {Function} props.onInitializeStorage - Callback to initialize Arweave storage
  */
 const CertificateForm = ({
   onSubmit,
   isSubmitting = false,
-  isStorageInitializing = false,
   storageInitialized = false,
   onInitializeStorage,
   className = '',
@@ -35,7 +33,6 @@ const CertificateForm = ({
     expiryDate: '',
     description: '',
     termsAccepted: false,
-    issuerEmail: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -74,10 +71,6 @@ const CertificateForm = ({
       newErrors.termsAccepted = 'You must accept the terms';
     }
 
-    if (showStorageSection && !storageInitialized && (!formData.issuerEmail || !formData.issuerEmail.includes('@'))) {
-      newErrors.issuerEmail = 'A valid email is required for IPFS storage';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -85,15 +78,9 @@ const CertificateForm = ({
   const handleInitializeStorage = (e) => {
     e.preventDefault();
 
-    if (!formData.issuerEmail || !formData.issuerEmail.includes('@')) {
-      setErrors({
-        ...errors,
-        issuerEmail: 'A valid email is required for IPFS storage'
-      });
-      return;
+    if (onInitializeStorage) {
+      onInitializeStorage();
     }
-
-    onInitializeStorage(formData.issuerEmail);
   };
 
   const handleSubmit = (e) => {
@@ -107,47 +94,27 @@ const CertificateForm = ({
   return (
     <div className={className} {...props}>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* IPFS Storage Initialization Section */}
+        {/* Arweave Storage Initialization Section */}
         {showStorageSection && !storageInitialized && (
           <div className="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 p-4 rounded-lg mb-6">
             <h3 className="text-lg font-medium text-blue-700 dark:text-blue-300 mb-2">
-              Initialize IPFS Storage
+              Initialize Arweave Storage
             </h3>
             <p className="text-blue-600 dark:text-blue-300 mb-4">
-              Before issuing certificates, we need to set up IPFS storage for metadata.
-              This requires a valid email address for verification.
+              Before issuing certificates, we need to set up Arweave storage for permanent metadata storage.
+              For this demo, we'll create a temporary Arweave wallet for you.
             </p>
-
-            <FormField
-              id="issuerEmail"
-              label="Email Address"
-              required
-              error={errors.issuerEmail}
-            >
-              <TextInput
-                id="issuerEmail"
-                name="issuerEmail"
-                value={formData.issuerEmail}
-                onChange={handleChange}
-                placeholder="Your email address"
-                required
-                error={errors.issuerEmail}
-                type="email"
-              />
-            </FormField>
 
             <div className="mt-4">
               <Button
                 type="button"
                 variant="primary"
-                disabled={isStorageInitializing || !formData.issuerEmail}
-                isLoading={isStorageInitializing}
                 onClick={handleInitializeStorage}
               >
-                {isStorageInitializing ? 'Initializing...' : 'Initialize Storage'}
+                Initialize Arweave Storage
               </Button>
               <p className="text-sm text-blue-600 dark:text-blue-300 mt-2">
-                A verification email will be sent to this address. You&apos;ll need to click the link in the email to proceed.
+                In a production environment, you would connect to your own Arweave wallet or key.
               </p>
             </div>
           </div>
@@ -276,7 +243,7 @@ const CertificateForm = ({
 
           {showStorageSection && !storageInitialized && (
             <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-              You must initialize storage before issuing certificates.
+              You must initialize Arweave storage before issuing certificates.
             </p>
           )}
         </div>

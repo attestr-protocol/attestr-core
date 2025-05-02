@@ -4,17 +4,16 @@ import {
     issueCertificate,
     verifyCertificate,
     getCertificatesForRecipient,
-    getCertificatesForIssuer,
-    recordVerification
-} from '../blockchain/certificateUtils';
+    getCertificatesForIssuer
+} from '../blockchain/contractUtils';
 import {
     formatCertificateMetadata,
     storeCertificateMetadata,
-    initializeStorage,
     retrieveCertificateMetadata,
+    initializeStorage,
     isStorageInitialized,
-    getCurrentSpaceDid
-} from '../storage/ipfsStorage';
+    getCurrentWalletAddress
+} from '../storage/arweaveStorage';
 import { getProvider } from '../blockchain/walletUtils';
 
 /**
@@ -26,7 +25,6 @@ export const useCertificate = () => {
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [storageInitialized, setStorageInitialized] = useState(false);
-    const [emailVerificationPending, setEmailVerificationPending] = useState(false);
 
     // Check storage initialized state on mount
     useEffect(() => {
@@ -39,11 +37,10 @@ export const useCertificate = () => {
         setTimeout(() => setSuccessMessage(null), 5000);
     };
 
-    // Initialize IPFS storage
-    const initializeIPFSStorage = useCallback(async (email) => {
+    // Initialize Arweave storage
+    const initializeArweaveStorage = useCallback(async (jwkOrToken) => {
         setIsLoading(true);
         setError(null);
-        setEmailVerificationPending(false);
 
         try {
             // Skip if already initialized
@@ -52,31 +49,18 @@ export const useCertificate = () => {
                 return true;
             }
 
-            console.log(`Attempting to initialize storage with email: ${email}`);
+            console.log('Initializing Arweave storage...');
+            const result = await initializeStorage(jwkOrToken);
 
-            try {
-                // Try to initialize with the given email
-                const result = await initializeStorage(email);
-
-                if (result) {
-                    setStorageInitialized(true);
-                    showSuccess('Storage initialized successfully');
-                    return true;
-                } else {
-                    setEmailVerificationPending(true);
-                    console.log('Email verification pending. Please check your inbox.');
-                    return false;
-                }
-            } catch (initError) {
-                if (initError.message && initError.message.includes('email')) {
-                    setEmailVerificationPending(true);
-                    console.log('Email verification pending. Please check your inbox.');
-                    return false;
-                }
-                throw initError;
+            if (result) {
+                setStorageInitialized(true);
+                showSuccess('Arweave storage initialized successfully');
+                return true;
+            } else {
+                throw new Error('Failed to initialize Arweave storage');
             }
         } catch (error) {
-            console.error('Error initializing IPFS storage:', error);
+            console.error('Error initializing Arweave storage:', error);
             setError('Failed to initialize storage: ' + (error.message || 'Unknown error'));
             return false;
         } finally {
@@ -93,9 +77,11 @@ export const useCertificate = () => {
         try {
             // Make sure storage is initialized
             if (!storageInitialized) {
-                const initialized = await initializeIPFSStorage(certificateData.issuerEmail);
+                // For development, can auto-initialize with a temporary wallet
+                // In production, should have proper wallet management
+                const initialized = await initializeArweaveStorage();
                 if (!initialized) {
-                    throw new Error('Storage not initialized. Please complete email verification first.');
+                    throw new Error('Arweave storage not initialized. Please initialize storage first.');
                 }
             }
 
@@ -119,19 +105,15 @@ export const useCertificate = () => {
                 issuerWallet,
             });
 
-            // Store metadata on IPFS
-            console.log('Storing certificate metadata on IPFS...');
-            const ipfsCid = await storeCertificateMetadata(metadata);
-            const metadataURI = `ipfs://${ipfsCid}`;
+            // Store metadata on Arweave
+            console.log('Storing certificate metadata on Arweave...');
+            const txId = await storeCertificateMetadata(metadata);
+            const metadataURI = `ar://${txId}`;
             console.log('Metadata stored with URI:', metadataURI);
 
             // Issue certificate on blockchain
             console.log('Issuing certificate on blockchain...');
-            const result = await issueCertificate({
-                ...certificateData,
-                issuerWallet,
-                metadataURI
-            });
+            const result = await issueCertificate(certificateData, metadataURI);
 
             if (!result.success) {
                 throw new Error(result.error || 'Failed to issue certificate on blockchain');
@@ -139,6 +121,8 @@ export const useCertificate = () => {
 
             // Add metadata to the result
             result.metadata = metadata;
+            result.arweaveTxId = txId;
+
             showSuccess(`Certificate issued successfully with ID: ${result.certificateId.substring(0, 10)}...`);
             return result;
         } catch (error) {
@@ -151,7 +135,7 @@ export const useCertificate = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [storageInitialized, initializeIPFSStorage]);
+    }, [storageInitialized, initializeArweaveStorage]);
 
     // Verify a certificate
     const verifyExistingCertificate = useCallback(async (certificateId) => {
@@ -167,7 +151,7 @@ export const useCertificate = () => {
             }
 
             // Try to get metadata if available
-            if (result.metadataURI) {
+            if (result.metadataURI && result.metadataURI.startsWith('ar://')) {
                 try {
                     const metadata = await retrieveCertificateMetadata(result.metadataURI);
                     result.metadata = metadata;
@@ -196,29 +180,6 @@ export const useCertificate = () => {
         }
     }, []);
 
-    // Record a verification
-    const recordCertificateVerification = useCallback(async (certificateId) => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const result = await recordVerification(certificateId);
-
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to record verification');
-            }
-
-            showSuccess('Verification recorded successfully on the blockchain');
-            return result;
-        } catch (error) {
-            console.error('Error recording verification:', error);
-            setError(error.message || 'An error occurred while recording the verification');
-            return { success: false, error: error.message };
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     // Get certificates for a recipient
     const getRecipientCertificates = useCallback(async (walletAddress) => {
         setIsLoading(true);
@@ -232,7 +193,7 @@ export const useCertificate = () => {
             const certificates = await getCertificatesForRecipient(walletAddress);
 
             // Try to enhance certificates with metadata if available
-            const enhancedCertificates = await Promise.all(
+            return await Promise.all(
                 certificates.map(async (cert) => {
                     // Add a status property for UI purposes
                     let status = 'valid';
@@ -242,21 +203,9 @@ export const useCertificate = () => {
                         status = 'expired';
                     }
 
-                    // Try to get metadata
-                    if (cert.metadataURI) {
-                        try {
-                            const metadata = await retrieveCertificateMetadata(cert.metadataURI);
-                            return { ...cert, status, metadata };
-                        } catch (err) {
-                            console.warn(`Failed to get metadata for certificate ${cert.certificateId}:`, err);
-                        }
-                    }
-
                     return { ...cert, status };
                 })
             );
-
-            return enhancedCertificates;
         } catch (error) {
             console.error('Error getting certificates:', error);
             setError(error.message || 'An error occurred while fetching certificates');
@@ -279,7 +228,7 @@ export const useCertificate = () => {
             const certificates = await getCertificatesForIssuer(walletAddress);
 
             // Try to enhance certificates with metadata if available
-            const enhancedCertificates = await Promise.all(
+            return await Promise.all(
                 certificates.map(async (cert) => {
                     // Add a status property for UI purposes
                     let status = 'valid';
@@ -289,21 +238,9 @@ export const useCertificate = () => {
                         status = 'expired';
                     }
 
-                    // Try to get metadata
-                    if (cert.metadataURI) {
-                        try {
-                            const metadata = await retrieveCertificateMetadata(cert.metadataURI);
-                            return { ...cert, status, metadata };
-                        } catch (err) {
-                            console.warn(`Failed to get metadata for certificate ${cert.certificateId}:`, err);
-                        }
-                    }
-
                     return { ...cert, status };
                 })
             );
-
-            return enhancedCertificates;
         } catch (error) {
             console.error('Error getting issued certificates:', error);
             setError(error.message || 'An error occurred while fetching issued certificates');
@@ -313,32 +250,34 @@ export const useCertificate = () => {
         }
     }, []);
 
-    // Check if a space is already initialized
+    // Check if storage is already initialized
     const checkStorageStatus = useCallback(() => {
         const initialized = isStorageInitialized();
         setStorageInitialized(initialized);
         return initialized;
     }, []);
 
-    // Get the current space ID
-    const getSpaceInfo = useCallback(() => {
-        const spaceDid = getCurrentSpaceDid();
-        return { spaceDid };
+    // Get the current wallet address
+    const getArweaveAddress = useCallback(async () => {
+        try {
+            return await getCurrentWalletAddress();
+        } catch (error) {
+            console.error('Error getting Arweave wallet address:', error);
+            return null;
+        }
     }, []);
 
     return {
-        initializeIPFSStorage,
+        initializeArweaveStorage,
         issueNewCertificate,
         verifyExistingCertificate,
-        recordCertificateVerification,
         getRecipientCertificates,
         getIssuerCertificates,
         checkStorageStatus,
-        getSpaceInfo,
+        getArweaveAddress,
         isLoading,
         error,
         successMessage,
-        storageInitialized,
-        emailVerificationPending
+        storageInitialized
     };
 };

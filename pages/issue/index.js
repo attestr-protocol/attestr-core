@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import IssueCertificateTemplate from '../../components/page-templates/IssueCertificateTemplate';
 import { useWalletContext } from '../../contexts/WalletContext';
 import { useCertificateContext } from '../../contexts/CertificateContext';
 import CertificateForm from '../../components/organisms/certificate/CertificateForm';
@@ -15,7 +14,7 @@ export default function IssuePage() {
     const { address, connect, disconnect } = useWalletContext();
     const {
         issueNewCertificate,
-        initializeIPFSStorage,
+        initializeArweaveStorage,
         isLoading,
         storageInitialized
     } = useCertificateContext();
@@ -24,16 +23,18 @@ export default function IssuePage() {
     const [isStorageInitializing, setIsStorageInitializing] = useState(false);
     const [storageError, setStorageError] = useState(null);
 
-    // Handle storage initialization
-    const handleInitializeStorage = async (email) => {
+    // Handle Arweave storage initialization
+    const handleInitializeStorage = async () => {
         setIsStorageInitializing(true);
         setStorageError(null);
 
         try {
-            const result = await initializeIPFSStorage(email);
+            // For demo purposes, initialize with a temporary wallet
+            // In production, you would use a real wallet or connect to ArConnect/ArweaveWallet
+            const result = await initializeArweaveStorage();
 
             if (!result) {
-                setStorageError('Failed to initialize storage. Please make sure you clicked the verification link in your email.');
+                setStorageError('Failed to initialize Arweave storage. Please try again.');
             }
         } catch (error) {
             console.error('Error initializing storage:', error);
@@ -91,7 +92,7 @@ export default function IssuePage() {
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold">Issue New Certificate</h1>
                     <p className="text-gray-600 dark:text-gray-300">
-                        Create and issue a new blockchain-verified credential for an individual.
+                        Create and issue a new blockchain-verified credential with permanent storage on Arweave.
                     </p>
                 </div>
 
@@ -110,7 +111,7 @@ export default function IssuePage() {
                     </div>
                 )}
 
-                {/* Email Verification Info */}
+                {/* Storage Initialization Info */}
                 {isStorageInitializing && (
                     <div className="bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 text-yellow-700 dark:text-yellow-300 p-4 rounded-lg mb-6">
                         <div className="flex">
@@ -118,13 +119,15 @@ export default function IssuePage() {
                                 <InformationCircleIcon className="h-5 w-5 text-yellow-400" aria-hidden="true" />
                             </div>
                             <div className="ml-3">
-                                <h3 className="text-sm font-medium">Email Verification Required</h3>
+                                <h3 className="text-sm font-medium">Initializing Arweave Storage</h3>
                                 <p className="text-sm mt-1">
-                                    A verification email has been sent to your address. Please check your inbox and click the verification link.
+                                    Setting up Arweave for permanent data storage. This process may take a moment.
                                 </p>
-                                <p className="text-sm mt-1">
-                                    This page will update automatically once verification is complete.
-                                </p>
+                                <div className="mt-2">
+                                    <div className="w-40 h-2 bg-yellow-200 dark:bg-yellow-700 rounded-full overflow-hidden">
+                                        <div className="h-full bg-yellow-500 dark:bg-yellow-400 animate-pulse rounded-full"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -136,7 +139,6 @@ export default function IssuePage() {
                         <CertificateForm
                             onSubmit={handleSubmit}
                             isSubmitting={isLoading}
-                            isStorageInitializing={isStorageInitializing}
                             storageInitialized={storageInitialized}
                             onInitializeStorage={handleInitializeStorage}
                         />
@@ -151,13 +153,16 @@ export default function IssuePage() {
                 {/* Success/Error notification */}
                 {issuanceSuccess && (
                     <div className={`fixed bottom-6 right-6 p-4 rounded-lg shadow-lg ${issuanceSuccess.success
-                            ? 'bg-green-100 border border-green-500 text-green-700 dark:bg-green-900 dark:text-green-300'
-                            : 'bg-red-100 border border-red-500 text-red-700 dark:bg-red-900 dark:text-red-300'
+                        ? 'bg-green-100 border border-green-500 text-green-700 dark:bg-green-900 dark:text-green-300'
+                        : 'bg-red-100 border border-red-500 text-red-700 dark:bg-red-900 dark:text-red-300'
                         }`}>
                         {issuanceSuccess.success ? (
                             <div>
                                 <h3 className="font-bold mb-1">Certificate Issued Successfully</h3>
                                 <p>Certificate ID: {issuanceSuccess.certificateId}</p>
+                                {issuanceSuccess.arweaveTxId && (
+                                    <p className="text-sm mt-1">Arweave TX: {issuanceSuccess.arweaveTxId.substring(0, 12)}...</p>
+                                )}
                                 <p className="text-sm mt-1">Redirecting to certificate details...</p>
                             </div>
                         ) : (

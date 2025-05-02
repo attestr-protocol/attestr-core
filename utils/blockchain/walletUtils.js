@@ -34,7 +34,7 @@ export const getProvider = () => {
     }
 
     // Fallback to a JSON-RPC provider (for server-side rendering or if MetaMask is not available)
-    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://polygon-amoy.g.alchemy.com/v2/your-api-key";
+    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
     return new ethers.providers.JsonRpcProvider(rpcUrl);
 };
 
@@ -52,7 +52,7 @@ export const isSupportedNetwork = async () => {
         const { chainId } = await provider.getNetwork();
 
         // Get target chain ID from environment or fallback to Amoy (80002)
-        const targetChainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80002', 10);
+        const targetChainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10);
 
         return chainId === targetChainId;
     } catch (error) {
@@ -72,7 +72,7 @@ export const switchToAmoyNetwork = async () => {
 
     try {
         // Chain ID as hex string (80002 = 0x13882)
-        const chainIdHex = `0x${parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80002', 10).toString(16)}`;
+        const chainIdHex = `0x${parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10).toString(16)}`;
 
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',

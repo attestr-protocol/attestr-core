@@ -64,6 +64,10 @@ const CertificateCard = ({
         certificate.metadata?.issuer?.name ||
         <Address address={certificate.issuer} />;
 
+    // Get Arweave transaction ID from metadataURI if available
+    const arweaveTxId = certificate.metadataURI?.startsWith('ar://') ?
+        certificate.metadataURI.replace('ar://', '') : null;
+
     return (
         <Card
             variant="outline"
@@ -146,9 +150,26 @@ const CertificateCard = ({
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mr-2">ID:</span>
-                    <span className="text-xs font-mono truncate flex-grow">{certificate.certificateId}</span>
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mr-2">ID:</span>
+                        <span className="text-xs font-mono truncate flex-grow">{certificate.certificateId}</span>
+                    </div>
+
+                    {arweaveTxId && (
+                        <div className="flex items-center">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mr-2">Arweave:</span>
+                            <span className="text-xs font-mono truncate flex-grow">{arweaveTxId}</span>
+                            <a
+                                href={`https://viewblock.io/arweave/tx/${arweaveTxId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline ml-2"
+                            >
+                                View
+                            </a>
+                        </div>
+                    )}
                 </div>
             </div>
         </Card>

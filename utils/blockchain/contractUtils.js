@@ -3,24 +3,13 @@ import { ethers } from 'ethers';
 // Contract ABIs - will be replaced with actual compiled ABIs
 import CertificateIssuanceABI from '../../contracts/abis/CertificateIssuance.json';
 import VerificationABI from '../../contracts/abis/Verification.json';
+import { formatCertificateMetadata, storeCertificateMetadata, retrieveCertificateMetadata } from '../storage/arweaveStorage';
+import { getProvider } from './walletUtils';
 
 // Contract addresses - will be updated after deployment
 const CONTRACT_ADDRESSES = {
     certificateIssuance: process.env.NEXT_PUBLIC_CERTIFICATE_CONTRACT_ADDRESS,
     verification: process.env.NEXT_PUBLIC_VERIFICATION_CONTRACT_ADDRESS,
-};
-
-/**
- * Get an ethers provider instance
- * @returns {ethers.providers.Web3Provider} Provider instance
- */
-export const getProvider = () => {
-    // Check if window is defined (browser environment)
-    if (typeof window !== 'undefined' && window.ethereum) {
-        return new ethers.providers.Web3Provider(window.ethereum);
-    }
-    // Fallback to a JSON-RPC provider (for server-side)
-    return new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
 };
 
 /**
@@ -56,11 +45,23 @@ export const getContract = async (contractName, withSigner = false) => {
 /**
  * Issue a certificate on the blockchain
  * @param {Object} certificateData - Certificate data
- * @param {string} metadataURI - IPFS URI for certificate metadata
+ * @param {string} metadataURI - Arweave URI for certificate metadata
  * @returns {Promise<Object>} Transaction result with certificate ID
  */
 export const issueCertificate = async (certificateData, metadataURI) => {
     try {
+        // If metadataURI isn't provided, create and store metadata on Arweave
+        if (!metadataURI) {
+            // Format the metadata
+            const metadata = formatCertificateMetadata(certificateData);
+
+            // Store metadata on Arweave
+            console.log('Storing certificate metadata on Arweave...');
+            const txId = await storeCertificateMetadata(metadata);
+            metadataURI = `ar://${txId}`;
+            console.log('Metadata stored with URI:', metadataURI);
+        }
+
         const contract = await getContract('certificateIssuance', true);
 
         // Prepare transaction parameters
@@ -87,6 +88,7 @@ export const issueCertificate = async (certificateData, metadataURI) => {
             success: true,
             certificateId,
             transactionHash: receipt.transactionHash,
+            metadataURI,
         };
     } catch (error) {
         console.error('Error issuing certificate:', error);
@@ -115,6 +117,17 @@ export const verifyCertificate = async (certificateId) => {
             const certificateDetails = await certContract.getCertificate(certificateId);
             const [issuerAddr, recipient, metadataURI, issueDateValue, expiryDateValue, revoked] = certificateDetails;
 
+            // Try to fetch metadata from Arweave if available
+            let metadata = null;
+            if (metadataURI && metadataURI.startsWith('ar://')) {
+                try {
+                    metadata = await retrieveCertificateMetadata(metadataURI);
+                } catch (error) {
+                    console.warn('Error retrieving metadata from Arweave:', error);
+                    // Continue even if metadata fetch fails
+                }
+            }
+
             return {
                 success: true,
                 isValid,
@@ -122,6 +135,7 @@ export const verifyCertificate = async (certificateId) => {
                 issuer: issuerAddr,
                 recipient,
                 metadataURI,
+                metadata,
                 issueDate: new Date(issueDateValue.toNumber() * 1000).toISOString(),
                 expiryDate: expiryDateValue.toNumber() > 0
                     ? new Date(expiryDateValue.toNumber() * 1000).toISOString()
@@ -230,5 +244,20 @@ export const getCertificatesForIssuer = async (address) => {
     } catch (error) {
         console.error('Error getting certificates:', error);
         return [];
+    }
+};
+
+/**
+ * Check if an address is a verified issuer
+ * @param {string} address - Issuer wallet address
+ * @returns {Promise<boolean>} Whether the address is a verified issuer
+ */
+export const isVerifiedIssuer = async (address) => {
+    try {
+        const contract = await getContract('certificateIssuance');
+        return await contract.verifiedIssuers(address);
+    } catch (error) {
+        console.error('Error checking if issuer is verified:', error);
+        return false;
     }
 };

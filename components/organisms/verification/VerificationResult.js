@@ -72,7 +72,7 @@ const VerificationResult = ({
         valid: {
             icon: CheckCircleIcon,
             title: 'Certificate Verified',
-            description: 'This certificate has been verified as authentic on the blockchain.',
+            description: 'This certificate has been verified as authentic on the blockchain with permanent storage on Arweave.',
             color: 'success',
         },
         invalid: {
@@ -106,6 +106,9 @@ const VerificationResult = ({
 
     // Issuer name
     const issuerName = metadata?.issuer?.name || 'Not specified';
+
+    // Get Arweave transaction ID from metadataURI if available
+    const arweaveTxId = certificate.metadataURI ? certificate.metadataURI.replace('ar://', '') : null;
 
     // Certificate actions
     const handleCopyId = () => {
@@ -187,9 +190,9 @@ const VerificationResult = ({
                             Share
                         </Button>
 
-                        {certificate.metadataURI && (
+                        {arweaveTxId && (
                             <a
-                                href={certificate.metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')}
+                                href={`https://viewblock.io/arweave/tx/${arweaveTxId}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
@@ -198,7 +201,7 @@ const VerificationResult = ({
                                     size="sm"
                                     startIcon={<ExternalLinkIcon className="h-5 w-5" />}
                                 >
-                                    View Metadata
+                                    View on Arweave
                                 </Button>
                             </a>
                         )}
@@ -244,6 +247,18 @@ const VerificationResult = ({
                                     {certificate.certificateId}
                                 </p>
                             </div>
+
+                            {arweaveTxId && (
+                                <div>
+                                    <div className="flex items-center text-gray-500 dark:text-gray-400 mb-1">
+                                        <FingerPrintIcon className="h-5 w-5 mr-2" />
+                                        <span className="text-sm">Arweave TX ID</span>
+                                    </div>
+                                    <p className="font-mono text-sm break-all text-gray-900 dark:text-white">
+                                        {arweaveTxId}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
