@@ -17,7 +17,7 @@ VeriChain is a modern full-stack decentralized application for issuing, verifyin
 - **UI Framework**: Tailwind CSS with custom theming
 - **Blockchain**: Ethereum (Polygon Amoy Testnet)
 - **Smart Contracts**: Solidity
-- **Storage**: IPFS via Web3.Storage
+- **Storage**: Arweave 
 - **Authentication**: MetaMask wallet integration
 
 ## 🎨 Design System
@@ -62,13 +62,14 @@ The project follows a component-based architecture with atomic design principles
 
 - Node.js 16+
 - MetaMask extension installed in your browser
-- An IPFS storage solution (we use Web3.Storage)
+- Arweave
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/VeriChain.git
+   git clone https://github.com/SuryanshSS1011/VeriChain.git
+   cd VeriChain
    ```
 
 2. Install dependencies:
