@@ -1,9 +1,8 @@
-// components/molecules/storage/ArweaveStorageInit.jsx
+// components/molecules/storage/ArweaveStorageInit.js
 import React, { useState, useEffect } from 'react';
 import { useArweave } from '../../../contexts/ArweaveContext';
-import Card from '../../molecules/cards/Card';
+import Card from '../cards/Card';
 import Button from '../../atoms/buttons/Button';
-import WalletConnectButton from '../../wallet/WalletConnectButton';
 import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/outline';
 
 /**
@@ -19,7 +18,6 @@ const ArweaveStorageInit = ({
     const {
         isInitialized,
         walletAddress,
-        useFallback,
         isLoading,
         error: arweaveError,
         generateTestWallet
@@ -30,14 +28,13 @@ const ArweaveStorageInit = ({
 
     // Check storage status when component mounts or deps change
     useEffect(() => {
-        const storageAvailable = isInitialized || useFallback;
-        setHasStorage(storageAvailable);
+        setHasStorage(isInitialized);
 
         // Notify parent if storage is ready
-        if (storageAvailable && onStorageReady) {
+        if (isInitialized && onStorageReady) {
             onStorageReady(true);
         }
-    }, [isInitialized, useFallback, onStorageReady]);
+    }, [isInitialized, onStorageReady]);
 
     // Update error state when Arweave error changes
     useEffect(() => {
@@ -75,10 +72,8 @@ const ArweaveStorageInit = ({
                             Storage System Ready
                         </h3>
                         <div className="mt-2 text-sm text-green-700 dark:text-green-400">
-                            <p>{useFallback
-                                ? 'Using development mode storage. Your certificates will be stored locally for this demo.'
-                                : 'Your certificates will be stored on the Arweave network.'}</p>
-                            {walletAddress && !useFallback && (
+                            <p>Your certificates will be stored on the Arweave network.</p>
+                            {walletAddress && (
                                 <p className="mt-1 font-mono text-xs">Wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}</p>
                             )}
                         </div>
@@ -112,7 +107,7 @@ const ArweaveStorageInit = ({
                             </div>
                         )}
 
-                        <div className="mt-6 flex flex-col md:flex-row gap-4">
+                        <div className="mt-6">
                             <Button
                                 variant="primary"
                                 onClick={handleUseDemoStorage}
@@ -122,13 +117,11 @@ const ArweaveStorageInit = ({
                                 Use Demo Storage
                             </Button>
 
-                            <WalletConnectButton className="flex-shrink-0" />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+                                For this demo, we recommend using the demo storage option.
+                                In production, you would connect to a real Arweave wallet.
+                            </p>
                         </div>
-
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                            For this demo, we recommend using the demo storage option.
-                            In production, you would connect to a real Arweave wallet.
-                        </p>
                     </div>
                 </div>
             </div>

@@ -1,19 +1,22 @@
 // utils/storage/arweaveStorage.js
 import Arweave from 'arweave';
 
-// Initialize Arweave instance with the AR.io testnet settings
+// Initialize Arweave instance with configurable host
 const arweave = Arweave.init({
-    host: 'ar-io.net',
+    host: process.env.NEXT_PUBLIC_ARWEAVE_HOST || 'ar-io.net',
     port: 443,
     protocol: 'https',
     timeout: 30000, // Increased timeout for testnet
-    logging: true, // Enable logging for better debugging
+    logging: false,
 });
 
 // State variables
 let wallet = null;
 let isInitialized = false;
 let connectedWalletType = null; // 'arconnect', 'arweavewallet', 'jwk'
+
+// Local storage for demo purpose
+const mockTransactions = {};
 
 /**
  * Initialize storage with Arweave wallet
@@ -28,7 +31,7 @@ export async function initializeStorage(key, type = 'jwk') {
             return true;
         }
 
-        console.log(`Initializing Arweave storage on AR.io testnet with ${type} wallet...`);
+        console.log(`Initializing Arweave storage with ${type} wallet...`);
 
         // Set wallet type
         connectedWalletType = type;
@@ -36,7 +39,7 @@ export async function initializeStorage(key, type = 'jwk') {
         if (type === 'arconnect') {
             // Initialize with ArConnect
             if (!window.arweaveWallet) {
-                throw new Error('ArConnect/Wander extension not found. Please install it first.');
+                throw new Error('ArConnect extension not found. Please install it first.');
             }
 
             // Request permission
@@ -70,7 +73,7 @@ export async function initializeStorage(key, type = 'jwk') {
             if (!key) {
                 // Generate a temporary wallet if not provided
                 wallet = await arweave.wallets.generate();
-                console.warn('Using temporary wallet on AR.io testnet. Note: This wallet will need testnet tokens.');
+                console.warn('Using temporary wallet. Note: This wallet will need tokens.');
             } else {
                 // If key is provided as a JWK or JWK-string
                 try {
@@ -94,7 +97,7 @@ export async function initializeStorage(key, type = 'jwk') {
 
                     // Warn if balance is too low
                     if (parseFloat(ar) < 0.00001) {
-                        console.warn('WARNING: Wallet balance very low for transactions on AR.io testnet');
+                        console.warn('WARNING: Wallet balance very low for transactions');
                     }
                 } catch (balanceErr) {
                     console.warn('Could not check wallet balance:', balanceErr);
@@ -129,15 +132,14 @@ export async function storeCertificateMetadata(certificateData) {
     }
 
     try {
-        console.log('Storing certificate metadata on AR.io testnet...');
+        console.log('Storing certificate metadata on Arweave...');
 
         // Create a JSON string from the certificate data
         const jsonString = JSON.stringify(certificateData, null, 2);
 
         // Calculate size-based fee - important to convert to string-integer format
         const length = jsonString.length;
-        // Convert to winston - a simple approximation for testnet
-        // Must be a string integer for AR.io testnet
+        // Convert to winston - a simple approximation
         const winstonReward = Math.ceil(length * 1000).toString();
 
         let transaction;
@@ -146,7 +148,6 @@ export async function storeCertificateMetadata(certificateData) {
             // Create transaction for ArConnect
             transaction = await arweave.createTransaction({
                 data: jsonString,
-                // Use the winston reward as a string
                 reward: winstonReward
             });
 
@@ -173,7 +174,6 @@ export async function storeCertificateMetadata(certificateData) {
             // Create transaction with JWK
             transaction = await arweave.createTransaction({
                 data: jsonString,
-                // Use the winston reward as a string
                 reward: winstonReward
             }, wallet);
 
@@ -190,7 +190,7 @@ export async function storeCertificateMetadata(certificateData) {
                 dataSize: jsonString.length
             });
 
-            // For AR.io testnet, post directly instead of using uploader
+            // Post the transaction
             const response = await arweave.transactions.post(transaction);
 
             if (response.status !== 200 && response.status !== 202) {
@@ -223,7 +223,6 @@ function addCertificateTags(transaction, certificateData) {
     transaction.addTag('Content-Type', 'application/json');
     transaction.addTag('App-Name', 'VeriChain');
     transaction.addTag('Type', 'Certificate');
-    transaction.addTag('Environment', 'AR.io-Testnet');
 
     // Add certificate-specific tags for easier querying
     if (certificateData.credential?.title) {
@@ -252,7 +251,13 @@ export async function retrieveCertificateMetadata(arweaveIdOrUri) {
     console.log('Retrieving metadata for Transaction ID:', txId);
 
     try {
-        // Fetch transaction data with additional retries for testnet
+        // First check if this is a mock transaction in demo mode
+        if (mockTransactions[txId]) {
+            console.log('Found mock transaction:', txId);
+            return mockTransactions[txId];
+        }
+
+        // Fetch transaction data with additional retries
         let attempts = 0;
         const maxAttempts = 3;
         let data;
@@ -274,7 +279,7 @@ export async function retrieveCertificateMetadata(arweaveIdOrUri) {
 
         // Parse the JSON data
         const metadata = JSON.parse(data);
-        console.log('Successfully retrieved metadata from AR.io testnet');
+        console.log('Successfully retrieved metadata from Arweave');
         return metadata;
     } catch (error) {
         console.error('Error retrieving certificate metadata:', error);
@@ -318,7 +323,7 @@ export function formatCertificateMetadata(data) {
         },
         metadata: {
             version: "1.0.0",
-            storage: "arweave-testnet",
+            storage: "arweave",
             created: timestamp,
             updated: timestamp,
         }
@@ -422,6 +427,14 @@ export function loadWalletFromLocalStorage() {
  */
 export async function getTransactionStatus(txId) {
     try {
+        // Check if this is a mock transaction in demo mode
+        if (mockTransactions[txId]) {
+            return {
+                status: 200,
+                confirmed: true,
+            };
+        }
+
         const status = await arweave.transactions.getStatus(txId);
         return {
             status: status.status,
@@ -431,6 +444,59 @@ export async function getTransactionStatus(txId) {
         console.error('Error checking transaction status:', error);
         throw error;
     }
+}
+
+/**
+ * Create a mock transaction for demo mode
+ * @param {Object} data - Data to store
+ * @returns {string} Mock transaction ID
+ */
+export function createMockTransaction(data) {
+    // Generate a random transaction ID
+    const txId = 'mock_' + Math.random().toString(36).substring(2, 15);
+
+    // Store data in memory for this session
+    mockTransactions[txId] = data;
+
+    // Also try to store in localStorage for persistence
+    try {
+        const mockTxsString = localStorage.getItem('verichain_mock_transactions') || '{}';
+        const mockTxs = JSON.parse(mockTxsString);
+        mockTxs[txId] = data;
+        localStorage.setItem('verichain_mock_transactions', JSON.stringify(mockTxs));
+    } catch (error) {
+        console.warn('Could not save mock transaction to localStorage:', error);
+    }
+
+    return txId;
+}
+
+/**
+ * Retrieve a mock transaction
+ * @param {string} txId - Transaction ID
+ * @returns {Object|null} Stored data or null if not found
+ */
+export function retrieveMockTransaction(txId) {
+    // First check in-memory cache
+    if (mockTransactions[txId]) {
+        return mockTransactions[txId];
+    }
+
+    // Then check localStorage
+    try {
+        const mockTxsString = localStorage.getItem('verichain_mock_transactions') || '{}';
+        const mockTxs = JSON.parse(mockTxsString);
+
+        if (mockTxs[txId]) {
+            // Add to in-memory cache for future use
+            mockTransactions[txId] = mockTxs[txId];
+            return mockTxs[txId];
+        }
+    } catch (error) {
+        console.warn('Error retrieving mock transaction from localStorage:', error);
+    }
+
+    return null;
 }
 
 /**
@@ -465,5 +531,192 @@ export function disconnectWallet() {
     // Clear from localStorage
     if (typeof window !== 'undefined') {
         localStorage.removeItem('verichain_arweave_wallet');
+    }
+}
+
+/**
+ * Execute a GraphQL query against the Arweave gateway
+ * Merged from previous graphqlQueries.js
+ * 
+ * @param {Object} query - GraphQL query object
+ * @param {string} endpoint - GraphQL endpoint URL (default: arweave.net/graphql)
+ * @returns {Promise<Object>} Query results
+ */
+export async function executeQuery(query, endpoint = null) {
+    const url = endpoint || `https://${process.env.NEXT_PUBLIC_ARWEAVE_HOST || 'ar-io.net'}/graphql`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(query),
+        });
+
+        if (!response.ok) {
+            throw new Error(`GraphQL request failed: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error executing GraphQL query:', error);
+        throw error;
+    }
+}
+
+/**
+ * Build a GraphQL query to fetch VeriChain certificates
+ * Merged from previous graphqlQueries.js
+ * 
+ * @param {Object} options - Query options
+ * @param {number} options.first - Number of results to return (default: 100, max: 100)
+ * @param {Array} options.tags - Array of tag objects with name and value(s)
+ * @param {Array} options.owners - Array of wallet addresses
+ * @param {Array} options.recipients - Array of recipient wallet addresses
+ * @param {string} options.after - Cursor for pagination
+ * @returns {Object} GraphQL query object
+ */
+export function buildCertificateQuery({
+    first = 100,
+    tags = [],
+    owners = [],
+    recipients = [],
+    after = null
+} = {}) {
+    // Start with standard tags that identify VeriChain certificates
+    const defaultTags = [
+        { name: 'App-Name', values: ['VeriChain'] },
+        { name: 'Type', values: ['Certificate'] },
+    ];
+
+    // Combine default tags with any user-provided tags
+    const allTags = [...defaultTags, ...tags];
+
+    // Add recipient tags if provided
+    if (recipients && recipients.length > 0) {
+        allTags.push({ name: 'Recipient', values: recipients });
+    }
+
+    // Build the tags filter
+    const tagsFilter = allTags.map(tag => {
+        return `{ name: "${tag.name}", values: [${tag.values.map(v => `"${v}"`).join(', ')}] }`;
+    }).join(', ');
+
+    // Build owners filter if provided
+    const ownersFilter = owners && owners.length > 0
+        ? `owners: [${owners.map(owner => `"${owner}"`).join(', ')}]`
+        : '';
+
+    // Add after cursor for pagination if provided
+    const afterFilter = after ? `after: "${after}"` : '';
+
+    // Combine all filters
+    const filters = [
+        `first: ${first}`,
+        tagsFilter ? `tags: [${tagsFilter}]` : '',
+        ownersFilter,
+        afterFilter
+    ].filter(Boolean).join(', ');
+
+    // Build the complete query
+    return {
+        query: `
+      query {
+        transactions(${filters}) {
+          pageInfo {
+            hasNextPage
+          }
+          edges {
+            cursor
+            node {
+              id
+              owner {
+                address
+              }
+              data {
+                size
+              }
+              tags {
+                name
+                value
+              }
+              block {
+                height
+                timestamp
+              }
+            }
+          }
+        }
+      }
+    `
+    };
+}
+
+/**
+ * Get user's certificates from Arweave
+ * 
+ * @param {string} walletAddress - User's wallet address
+ * @param {string} role - 'issuer' or 'recipient'
+ * @returns {Promise<Array>} List of certificates
+ */
+export async function getUserCertificates(walletAddress, role = 'recipient') {
+    try {
+        if (!walletAddress) {
+            throw new Error('Wallet address is required');
+        }
+
+        // Build query based on role
+        const queryOptions = {
+            first: 100,
+            tags: [],
+        };
+
+        if (role === 'issuer') {
+            queryOptions.owners = [walletAddress];
+        } else if (role === 'recipient') {
+            queryOptions.tags.push({ name: 'Recipient', values: [walletAddress] });
+        } else {
+            throw new Error('Invalid role. Must be "issuer" or "recipient"');
+        }
+
+        const query = buildCertificateQuery(queryOptions);
+        const result = await executeQuery(query);
+
+        if (!result.data || !result.data.transactions || !result.data.transactions.edges) {
+            return [];
+        }
+
+        // Process and return certificates
+        return Promise.all(
+            result.data.transactions.edges.map(async (edge) => {
+                const { node } = edge;
+                // Extract certificate data from node
+                const certificate = {
+                    id: node.id,
+                    issuer: node.owner.address,
+                    recipient: node.tags.find(tag => tag.name === 'Recipient')?.value,
+                    title: node.tags.find(tag => tag.name === 'Certificate-Title')?.value || 'Untitled Certificate',
+                    timestamp: node.block?.timestamp
+                        ? new Date(node.block.timestamp * 1000).toISOString()
+                        : null,
+                    arweaveUri: `ar://${node.id}`,
+                    viewUrl: getGatewayUrl(node.id)
+                };
+
+                // Try to get metadata if available
+                try {
+                    const metadata = await retrieveCertificateMetadata(`ar://${node.id}`);
+                    certificate.metadata = metadata;
+                } catch (error) {
+                    console.warn(`Failed to retrieve metadata for certificate ${node.id}:`, error);
+                }
+
+                return certificate;
+            })
+        );
+    } catch (error) {
+        console.error('Error getting user certificates:', error);
+        throw error;
     }
 }

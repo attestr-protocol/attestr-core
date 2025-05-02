@@ -1,5 +1,7 @@
 // components/organisms/certificate/CertificateForm.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useArweave } from '../../../contexts/ArweaveContext';
+import { useCertificateContext } from '../../../contexts/CertificateContext';
 import FormGroup from '../../molecules/forms/FormGroup';
 import FormField from '../../molecules/forms/FormField';
 import TextInput from '../../atoms/inputs/TextInput';
@@ -7,24 +9,24 @@ import DateInput from '../../atoms/inputs/DateInput';
 import TextArea from '../../atoms/inputs/TextArea';
 import Checkbox from '../../atoms/inputs/Checkbox';
 import Button from '../../atoms/buttons/Button';
+import Card from '../../molecules/cards/Card';
+import Modal from '../../molecules/modals/Modal';
+import { CheckCircleIcon, XCircleIcon, ExclamationIcon } from '@heroicons/react/outline';
 
 /**
- * Form for issuing a new certificate
+ * Unified certificate form with integrated storage functionality
  * 
  * @param {Object} props
- * @param {Function} props.onSubmit - Submit callback
- * @param {boolean} props.isSubmitting - Whether form is submitting
- * @param {boolean} props.storageInitialized - Whether Arweave storage has been initialized
- * @param {Function} props.onInitializeStorage - Callback to initialize Arweave storage
+ * @param {string} props.walletAddress - Issuer wallet address
+ * @param {Function} props.onIssued - Callback when certificate is issued
  */
 const CertificateForm = ({
-  onSubmit,
-  isSubmitting = false,
-  storageInitialized = false,
-  onInitializeStorage,
+  walletAddress,
+  onIssued,
   className = '',
   ...props
 }) => {
+  // Form state
   const [formData, setFormData] = useState({
     recipientName: '',
     recipientWallet: '',
@@ -35,20 +37,57 @@ const CertificateForm = ({
     termsAccepted: false,
   });
 
+  // Validation state
   const [errors, setErrors] = useState({});
-  const [showStorageSection, setShowStorageSection] = useState(!storageInitialized);
+  const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState(null);
 
+  // Get contexts
+  const { isInitialized: isStorageReady } = useArweave();
+  const {
+    issueCertificate,
+    isLoading,
+    error: contextError,
+    storageInitialized,
+    checkStorageStatus
+  } = useCertificateContext();
+
+  // Initialize form with today's date
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setFormData(prev => ({
+      ...prev,
+      issueDate: today,
+    }));
+  }, []);
+
+  // Check storage status when component mounts
+  useEffect(() => {
+    checkStorageStatus();
+  }, [checkStorageStatus]);
+
+  // Handle form field changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     });
+
+    // Clear error for this field when changed
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: '',
+      });
+    }
   };
 
+  // Validate form fields
   const validateForm = () => {
     const newErrors = {};
 
+    // Required fields
     if (!formData.recipientName.trim()) {
       newErrors.recipientName = 'Recipient name is required';
     }
@@ -75,52 +114,97 @@ const CertificateForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInitializeStorage = (e) => {
+  // Handle form submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (onInitializeStorage) {
-      onInitializeStorage();
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      // Check if storage is initialized
+      if (!storageInitialized) {
+        throw new Error('Storage not initialized. Please initialize storage first.');
+      }
+
+      // Add issuer wallet to form data
+      const certificateData = {
+        ...formData,
+        issuerWallet: walletAddress,
+        issuerName: 'VeriChain Institution', // Would be from user profile in a real app
+      };
+
+      // Issue certificate
+      const result = await issueCertificate(certificateData);
+
+      // Set result and show modal
+      setResult(result);
+      setShowResult(true);
+
+      // Call onIssued callback if provided
+      if (result.success && onIssued) {
+        onIssued(result);
+      }
+    } catch (error) {
+      console.error('Error issuing certificate:', error);
+
+      // Show error in modal
+      setResult({
+        success: false,
+        error: error.message || 'An unexpected error occurred',
+      });
+      setShowResult(true);
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Reset form after successful submission
+  const resetForm = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setFormData({
+      recipientName: '',
+      recipientWallet: '',
+      credentialTitle: '',
+      issueDate: today,
+      expiryDate: '',
+      description: '',
+      termsAccepted: false,
+    });
+    setErrors({});
+  };
 
-    if (validateForm()) {
-      onSubmit(formData);
+  // Close result modal
+  const handleCloseResult = () => {
+    setShowResult(false);
+
+    // Reset form if successful
+    if (result?.success) {
+      resetForm();
     }
   };
 
   return (
     <div className={className} {...props}>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Arweave Storage Initialization Section */}
-        {showStorageSection && !storageInitialized && (
-          <div className="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-blue-700 dark:text-blue-300 mb-2">
-              Initialize Arweave Storage
-            </h3>
-            <p className="text-blue-600 dark:text-blue-300 mb-4">
-              Before issuing certificates, we need to set up Arweave storage for permanent metadata storage.
-              For this demo, we&apos;ll create a temporary Arweave wallet for you.
-            </p>
-
-            <div className="mt-4">
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleInitializeStorage}
-              >
-                Initialize Arweave Storage
-              </Button>
-              <p className="text-sm text-blue-600 dark:text-blue-300 mt-2">
-                In a production environment, you would connect to your own Arweave wallet or key.
+      {/* Storage Not Ready Warning */}
+      {!storageInitialized && (
+        <Card className="bg-amber-50 dark:bg-amber-900/20 mb-6">
+          <div className="flex items-start p-4">
+            <ExclamationIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5 mr-2" />
+            <div>
+              <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                Storage Not Initialized
+              </h3>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                Storage must be initialized before issuing certificates. Please initialize storage in the wallet section.
               </p>
             </div>
           </div>
-        )}
+        </Card>
+      )}
 
-        <FormGroup columns={2}>
+      {/* Certificate Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <FormGroup title="Recipient Information" columns={2}>
           <FormField
             id="recipientName"
             label="Recipient Name"
@@ -154,7 +238,9 @@ const CertificateForm = ({
               error={errors.recipientWallet}
             />
           </FormField>
+        </FormGroup>
 
+        <FormGroup title="Credential Details" columns={3}>
           <FormField
             id="credentialTitle"
             label="Credential Title"
@@ -201,19 +287,21 @@ const CertificateForm = ({
           </FormField>
         </FormGroup>
 
-        <FormField
-          id="description"
-          label="Credential Description"
-        >
-          <TextArea
+        <FormGroup title="Description">
+          <FormField
             id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={4}
-            placeholder="Additional details about the credential..."
-          />
-        </FormField>
+            label="Credential Description"
+          >
+            <TextArea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={4}
+              placeholder="Additional details about the credential..."
+            />
+          </FormField>
+        </FormGroup>
 
         <FormField
           error={errors.termsAccepted}
@@ -233,21 +321,104 @@ const CertificateForm = ({
           <Button
             type="submit"
             variant="primary"
-            disabled={isSubmitting || (showStorageSection && !storageInitialized)}
-            fullWidth
+            disabled={isLoading || !storageInitialized}
             className="md:w-auto"
-            isLoading={isSubmitting}
+            isLoading={isLoading}
           >
-            {isSubmitting ? 'Issuing Certificate...' : 'Issue Certificate'}
+            {isLoading ? 'Issuing Certificate...' : 'Issue Certificate'}
           </Button>
 
-          {showStorageSection && !storageInitialized && (
+          {!storageInitialized && (
             <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-              You must initialize Arweave storage before issuing certificates.
+              You must initialize storage before issuing certificates.
+            </p>
+          )}
+
+          {contextError && (
+            <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+              {contextError}
             </p>
           )}
         </div>
       </form>
+
+      {/* Result Modal */}
+      <Modal
+        isOpen={showResult}
+        onClose={handleCloseResult}
+        title={result?.success ? "Certificate Issued" : "Issuance Failed"}
+      >
+        {result?.success ? (
+          <Card className="bg-green-50 dark:bg-green-900 dark:bg-opacity-20 border-0 p-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <CheckCircleIcon className="h-6 w-6 text-green-500" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-green-800 dark:text-green-300">
+                  Certificate Issued Successfully
+                </h3>
+                <div className="mt-2 text-sm text-green-700 dark:text-green-400">
+                  <p className="mb-2">Your certificate has been permanently stored and registered on the blockchain.</p>
+
+                  <div className="mt-4 space-y-2">
+                    <div>
+                      <p className="font-medium">Certificate ID:</p>
+                      <p className="font-mono text-xs break-all">
+                        {result.certificateId}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="font-medium">Storage Transaction ID:</p>
+                      <p className="font-mono text-xs break-all">
+                        {result.metadataURI?.replace('ar://', '')}
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <a
+                        href={`https://ar-io.net/${result.metadataURI?.replace('ar://', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary dark:text-primary-light hover:underline"
+                      >
+                        View Storage Transaction
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <Card className="bg-red-50 dark:bg-red-900 dark:bg-opacity-20 border-0 p-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <XCircleIcon className="h-6 w-6 text-red-500" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-red-800 dark:text-red-300">
+                  Certificate Issuance Failed
+                </h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-400">
+                  <p>{result?.error || 'An unexpected error occurred while issuing the certificate.'}</p>
+
+                  <div className="mt-4">
+                    <p className="font-medium">Troubleshooting:</p>
+                    <ul className="list-disc list-inside mt-1 space-y-1">
+                      <li>Check your wallet connections</li>
+                      <li>Make sure storage is initialized</li>
+                      <li>Verify that the recipient address is valid</li>
+                      <li>Try again in a few moments</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+      </Modal>
     </div>
   );
 };
