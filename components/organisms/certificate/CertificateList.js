@@ -88,28 +88,28 @@ const CertificateList = ({
     // Handle certificate share
     const handleShare = (certificate) => {
         if (onShare) {
-                    onShare(certificate);
-                }
+            onShare(certificate);
+        }
         else if (navigator.share) {
-                        navigator.share({
-                            title: certificate.credential?.title || 'Blockchain Certificate',
-                            text: `Check out my verified credential: ${certificate.credential?.title}`,
-                            url: `${window.location.origin}/verify/${certificate.certificateId}`,
-                        }).catch(err => {
-                            console.error('Error sharing:', err);
-                        });
-                    }
+            navigator.share({
+                title: certificate.credential?.title || 'Blockchain Certificate',
+                text: `Check out my verified credential: ${certificate.credential?.title}`,
+                url: `${window.location.origin}/verify/${certificate.certificateId}`,
+            }).catch(err => {
+                console.error('Error sharing:', err);
+            });
+        }
         else {
-                        // Fallback for browsers that don't support the Web Share API
-                        const shareUrl = `${window.location.origin}/verify/${certificate.certificateId}`;
-                        navigator.clipboard.writeText(shareUrl)
-                            .then(() => {
-                                alert('Share link copied to clipboard!');
-                            })
-                            .catch(err => {
-                                console.error('Error copying to clipboard:', err);
-                            });
-                    }
+            // Fallback for browsers that don't support the Web Share API
+            const shareUrl = `${window.location.origin}/verify/${certificate.certificateId}`;
+            navigator.clipboard.writeText(shareUrl)
+                .then(() => {
+                    alert('Share link copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Error copying to clipboard:', err);
+                });
+        }
     };
 
     // Handle certificate view

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Button from '../../atoms/buttons/Button';
 import TextInput from '../../atoms/inputs/TextInput';
+import { useCertificateContext } from '../../../contexts/CertificateContext';
 
 /**
  * Form for verifying certificates
@@ -50,4 +51,3 @@ const VerificationForm = ({
 };
 
 export default VerificationForm;
-

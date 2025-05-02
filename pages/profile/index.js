@@ -90,8 +90,8 @@ export default function ProfilePage() {
                         <CertificateList
                             walletAddress={address}
                             role={viewRole}
-                            onShareCertificate={handleShareCertificate}
-                            onViewCertificate={handleViewCertificate}
+                            onShare={handleShareCertificate}
+                            onView={handleViewCertificate}
                             onRequestCertificate={() => router.push('/issue')}
                         />
                     </div>

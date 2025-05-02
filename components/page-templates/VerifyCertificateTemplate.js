@@ -54,4 +54,3 @@ const VerifyCertificateTemplate = ({
 };
 
 export default VerifyCertificateTemplate;
-

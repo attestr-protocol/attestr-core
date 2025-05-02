@@ -4,22 +4,22 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import CertificateDetailTemplate from '../../components/page-templates/CertificateDetailTemplate';
 import { useCertificateContext } from '../../contexts/CertificateContext';
-import { useVerification } from '../../utils/hooks/useVerification';
 
 export default function CertificateDetailPage() {
     const router = useRouter();
     const { id } = router.query;
-    const { verifyExistingCertificate, isLoading } = useCertificateContext();
     const {
-        recordCertificateVerification,
-        isRecording,
-        verificationResult: recordingResult
-    } = useVerification();
+        verifyCertificate,
+        recordVerification,
+        isLoading
+    } = useCertificateContext();
 
     const [certificate, setCertificate] = useState(null);
     const [metadata, setMetadata] = useState(null);
     const [certificateStatus, setCertificateStatus] = useState(null);
     const [error, setError] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingResult, setRecordingResult] = useState(null);
 
     // Load certificate data when ID is available
     useEffect(() => {
@@ -29,21 +29,14 @@ export default function CertificateDetailPage() {
             }
 
             try {
-                const result = await verifyExistingCertificate(id);
+                const result = await verifyCertificate(id);
 
                 if (result.success) {
                     setCertificate(result);
                     setMetadata(result.metadata);
 
-                    // Determine certificate status
-                    let status = 'valid';
-                    if (!result.isValid) {
-                        status = result.revoked ? 'revoked' : 'invalid';
-                    } else if (result.expiryDate && new Date(result.expiryDate) < new Date()) {
-                        status = 'expired';
-                    }
-
-                    setCertificateStatus(status);
+                    // Set certificate status (using the status from result or determine it)
+                    setCertificateStatus(result.status || 'valid');
                 } else {
                     setError(result.error || 'Certificate not found');
                 }
@@ -54,12 +47,24 @@ export default function CertificateDetailPage() {
         }
 
         loadCertificate();
-    }, [id, verifyExistingCertificate]);
+    }, [id, verifyCertificate]);
 
     // Handle record verification
     const handleRecordVerification = async () => {
         if (certificate?.certificateId) {
-            await recordCertificateVerification(certificate.certificateId);
+            setIsRecording(true);
+
+            try {
+                const result = await recordVerification(certificate.certificateId);
+                setRecordingResult(result);
+            } catch (err) {
+                setRecordingResult({
+                    success: false,
+                    error: err.message || 'Failed to record verification'
+                });
+            } finally {
+                setIsRecording(false);
+            }
         }
     };
 
