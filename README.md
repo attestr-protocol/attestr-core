@@ -101,6 +101,7 @@ VeriChain uses two main smart contracts:
 2. **Verification.sol**: Records third-party verifications for audit purposes
 
 The contracts were rigorously tested to ensure the smooth functioning of the app.
+
 ![VeriChain Contract Test Results](public/ContractTestResults.png)
 
 To deploy contracts:
