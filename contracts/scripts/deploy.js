@@ -34,15 +34,27 @@ async function main() {
     if (hre.network.name === 'localhost' || hre.network.name === 'amoy') {
         console.log("Setting up demo issuers...");
 
-        const [owner, issuer1, issuer2] = await hre.ethers.getSigners();
+        try {
+            // Get signers 
+            const signers = await hre.ethers.getSigners();
 
-        // Grant issuer role to test accounts
-        const ISSUER_ROLE = hre.ethers.utils.keccak256(hre.ethers.utils.toUtf8Bytes("ISSUER_ROLE"));
-        await certificateIssuance.grantIssuerRole(issuer1.address);
-        await certificateIssuance.grantIssuerRole(issuer2.address);
+            // Make sure we have enough signers
+            if (signers.length >= 3) {
+                const [owner, issuer1, issuer2] = signers;
 
-        console.log(`Granted issuer role to ${issuer1.address}`);
-        console.log(`Granted issuer role to ${issuer2.address}`);
+                // Grant issuer role to test accounts
+                const ISSUER_ROLE = hre.ethers.utils.keccak256(hre.ethers.utils.toUtf8Bytes("ISSUER_ROLE"));
+                await certificateIssuance.grantIssuerRole(issuer1.address);
+                await certificateIssuance.grantIssuerRole(issuer2.address);
+
+                console.log(`Granted issuer role to ${issuer1.address}`);
+                console.log(`Granted issuer role to ${issuer2.address}`);
+            } else {
+                console.log("Not enough signers available for demo setup, skipping demo issuer configuration");
+            }
+        } catch (error) {
+            console.warn("Error setting up demo issuers, continuing deployment:", error.message);
+        }
     }
 
     // Output deployment information
