@@ -1,5 +1,5 @@
 // components/organisms/verification/VerificationResult.js
-import React from 'react';
+import React, { useState } from 'react';
 import {
     CheckCircleIcon,
     XCircleIcon,
@@ -9,15 +9,18 @@ import {
     UserIcon,
     OfficeBuildingIcon,
     ExternalLinkIcon,
-    ShareIcon
+    ShareIcon,
+    CubeIcon,
+    DocumentTextIcon
 } from '@heroicons/react/outline';
 import Card from '../../molecules/cards/Card';
-import Status from '../../atoms/display/Status';
 import Button from '../../atoms/buttons/Button';
+import Status from '../../atoms/display/Status';
+import Modal from '../../molecules/modals/Modal';
 import { formatDate } from '../../../utils/formatting/dateFormat';
 
 /**
- * Enhanced verification result component
+ * Enhanced verification result component with AR.IO storage information
  * 
  * @param {Object} props
  * @param {Object} props.certificate - Certificate data
@@ -37,6 +40,8 @@ const VerificationResult = ({
     className = '',
     ...props
 }) => {
+    const [showARIOModal, setShowARIOModal] = useState(false);
+
     // If certificate data is not available
     if (!certificate) {
         return (
@@ -71,7 +76,7 @@ const VerificationResult = ({
         valid: {
             icon: CheckCircleIcon,
             title: 'Certificate Verified',
-            description: 'This certificate has been verified as authentic on the blockchain.',
+            description: 'This certificate has been verified as authentic on the blockchain and AR.IO storage.',
             color: 'success',
         },
         invalid: {
@@ -190,19 +195,30 @@ const VerificationResult = ({
                         </Button>
 
                         {arweaveTxId && (
-                            <a
-                                href={`https://viewblock.io/arweave/tx/${arweaveTxId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
+                            <>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    startIcon={<ExternalLinkIcon className="h-5 w-5" />}
+                                    startIcon={<CubeIcon className="h-5 w-5" />}
+                                    onClick={() => setShowARIOModal(true)}
                                 >
-                                    View on Arweave
+                                    View Storage Details
                                 </Button>
-                            </a>
+
+                                <a
+                                    href={`https://ar-io.dev/${arweaveTxId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        startIcon={<ExternalLinkIcon className="h-5 w-5" />}
+                                    >
+                                        View on AR.IO
+                                    </Button>
+                                </a>
+                            </>
                         )}
                     </div>
                 </div>
@@ -250,8 +266,8 @@ const VerificationResult = ({
                             {arweaveTxId && (
                                 <div>
                                     <div className="flex items-center text-gray-500 dark:text-gray-400 mb-1">
-                                        <FingerPrintIcon className="h-5 w-5 mr-2" />
-                                        <span className="text-sm">Arweave TX ID</span>
+                                        <CubeIcon className="h-5 w-5 mr-2" />
+                                        <span className="text-sm">AR.IO Storage ID</span>
                                     </div>
                                     <p className="font-mono text-sm break-all text-gray-900 dark:text-white">
                                         {arweaveTxId}
@@ -331,6 +347,48 @@ const VerificationResult = ({
                         </div>
                     </div>
                 )}
+
+                {/* Storage Information */}
+                {arweaveTxId && (
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center">
+                            <CubeIcon className="h-5 w-5 mr-2 text-secondary" />
+                            AR.IO Permanent Storage
+                        </h3>
+
+                        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                                This certificate is permanently stored on the AR.IO network testnet, ensuring it cannot be tampered with
+                                and will remain accessible even if the issuing institution no longer exists.
+                            </p>
+
+                            <div className="flex flex-wrap gap-4">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowARIOModal(true)}
+                                    startIcon={<DocumentTextIcon className="h-5 w-5" />}
+                                >
+                                    View Storage Details
+                                </Button>
+
+                                <a
+                                    href={`https://ar-io.dev/${arweaveTxId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        startIcon={<ExternalLinkIcon className="h-5 w-5" />}
+                                    >
+                                        View on AR.IO Testnet
+                                    </Button>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </Card>
 
             {/* Record Verification Section */}
@@ -403,6 +461,98 @@ const VerificationResult = ({
                     )}
                 </Card>
             )}
+
+            {/* AR.IO Storage Modal */}
+            <Modal
+                isOpen={showARIOModal}
+                onClose={() => setShowARIOModal(false)}
+                title="AR.IO Permanent Storage Details"
+                size="lg"
+            >
+                <div className="p-6">
+                    <div className="mb-6">
+                        <h3 className="text-lg font-medium mb-3 flex items-center">
+                            <CubeIcon className="h-5 w-5 mr-2 text-secondary" />
+                            About AR.IO Permanent Storage
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4">
+                            VeriChain uses AR.IO Network testnet for permanent, decentralized storage of credential metadata.
+                            This ensures certificates:
+                        </p>
+                        <ul className="list-disc pl-6 space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Cannot be tampered with or modified after issuance</li>
+                            <li>Remain accessible even if the issuing institution no longer exists</li>
+                            <li>Can be verified by anyone, anywhere, at any time</li>
+                            <li>Are stored with full data permanence</li>
+                        </ul>
+                    </div>
+
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h3 className="text-lg font-medium mb-3">Certificate Storage Details</h3>
+
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">AR.IO Transaction ID</h4>
+                                <p className="font-mono text-sm break-all">{arweaveTxId}</p>
+                            </div>
+
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Storage URI</h4>
+                                <p className="font-mono text-sm break-all">{certificate.metadataURI}</p>
+                            </div>
+
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Gateway URL</h4>
+                                <div className="flex items-center">
+                                    <p className="font-mono text-sm break-all mr-2">
+                                        https://ar-io.dev/{arweaveTxId}
+                                    </p>
+                                    <a
+                                        href={`https://ar-io.dev/${arweaveTxId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary dark:text-primary-light hover:underline"
+                                    >
+                                        <ExternalLinkIcon className="h-5 w-5" />
+                                    </a>
+                                </div>
+                            </div>
+
+                            {metadata?.metadata?.version && (
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Metadata Version</h4>
+                                    <p className="text-sm">{metadata.metadata.version}</p>
+                                </div>
+                            )}
+
+                            {metadata?.metadata?.created && (
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Creation Date</h4>
+                                    <p className="text-sm">{formatDate(metadata.metadata.created, 'full')}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <Button
+                            variant="primary"
+                            href="https://ar.io"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mr-3"
+                        >
+                            Learn More About AR.IO
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowARIOModal(false)}
+                        >
+                            Close
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

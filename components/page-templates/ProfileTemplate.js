@@ -81,7 +81,7 @@ const ProfileTemplate = ({
                                         <span className="block font-medium text-gray-500 dark:text-gray-400">
                                             Chain ID
                                         </span>
-                                        <span>Mumbai Testnet (80001)</span>
+                                        <span>Polygon Amoy Testnet (80002)</span>
                                     </div>
                                     <div>
                                         <span className="block font-medium text-gray-500 dark:text-gray-400">

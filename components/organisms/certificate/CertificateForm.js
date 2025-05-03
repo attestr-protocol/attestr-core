@@ -11,18 +11,26 @@ import Checkbox from '../../atoms/inputs/Checkbox';
 import Button from '../../atoms/buttons/Button';
 import Card from '../../molecules/cards/Card';
 import Modal from '../../molecules/modals/Modal';
-import { CheckCircleIcon, XCircleIcon, ExclamationIcon } from '@heroicons/react/outline';
+import PermanentStorageInfo from '../../molecules/storage/PermanentStorageInfo';
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationIcon,
+  InformationCircleIcon
+} from '@heroicons/react/outline';
 
 /**
- * Unified certificate form with integrated storage functionality
+ * Enhanced certificate form with AR.IO storage integration
  * 
  * @param {Object} props
  * @param {string} props.walletAddress - Issuer wallet address
  * @param {Function} props.onIssued - Callback when certificate is issued
+ * @param {Function} props.onInitializeStorage - Callback to initialize storage
  */
 const CertificateForm = ({
   walletAddress,
   onIssued,
+  onInitializeStorage,
   className = '',
   ...props
 }) => {
@@ -41,9 +49,14 @@ const CertificateForm = ({
   const [errors, setErrors] = useState({});
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState(null);
+  const [showStorageInfo, setShowStorageInfo] = useState(false);
 
   // Get contexts
-  const { isInitialized: isStorageReady } = useArweave();
+  const {
+    isInitialized: isStorageReady,
+    storeCertificate
+  } = useArweave();
+
   const {
     issueCertificate,
     isLoading,
@@ -125,7 +138,7 @@ const CertificateForm = ({
     try {
       // Check if storage is initialized
       if (!storageInitialized) {
-        throw new Error('Storage not initialized. Please initialize storage first.');
+        throw new Error('Storage not initialized. Please initialize AR.IO storage first.');
       }
 
       // Add issuer wallet to form data
@@ -135,16 +148,35 @@ const CertificateForm = ({
         issuerName: 'VeriChain Institution', // Would be from user profile in a real app
       };
 
-      // Issue certificate
-      const result = await issueCertificate(certificateData);
+      // First store certificate metadata on AR.IO testnet
+      const storageResult = await storeCertificate(certificateData);
+
+      if (!storageResult.success) {
+        throw new Error(storageResult.error || 'Failed to store certificate metadata on AR.IO testnet');
+      }
+
+      // Now issue certificate on blockchain with the AR.IO URI
+      const issuanceResult = await issueCertificate(certificateData, storageResult.arweaveUri);
+
+      if (!issuanceResult.success) {
+        throw new Error(issuanceResult.error || 'Failed to issue certificate on blockchain');
+      }
+
+      // Combine results
+      const finalResult = {
+        ...issuanceResult,
+        arweaveTxId: storageResult.txId,
+        arweaveUri: storageResult.arweaveUri,
+        metadata: storageResult.metadata,
+      };
 
       // Set result and show modal
-      setResult(result);
+      setResult(finalResult);
       setShowResult(true);
 
       // Call onIssued callback if provided
-      if (result.success && onIssued) {
-        onIssued(result);
+      if (onIssued) {
+        onIssued(finalResult);
       }
     } catch (error) {
       console.error('Error issuing certificate:', error);
@@ -183,20 +215,43 @@ const CertificateForm = ({
     }
   };
 
+  // Handle initialize storage click
+  const handleInitializeStorage = () => {
+    if (onInitializeStorage) {
+      onInitializeStorage();
+    }
+  };
+
   return (
     <div className={className} {...props}>
-      {/* Storage Not Ready Warning */}
+      {/* Storage Status Warning */}
       {!storageInitialized && (
         <Card className="bg-amber-50 dark:bg-amber-900/20 mb-6">
           <div className="flex items-start p-4">
             <ExclamationIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5 mr-2" />
             <div>
               <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                Storage Not Initialized
+                AR.IO Storage Not Initialized
               </h3>
               <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
-                Storage must be initialized before issuing certificates. Please initialize storage in the wallet section.
+                AR.IO storage must be initialized before issuing certificates for permanent storage.
               </p>
+              <div className="mt-3 flex space-x-3">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleInitializeStorage}
+                >
+                  Initialize Storage
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowStorageInfo(true)}
+                >
+                  Learn More
+                </Button>
+              </div>
             </div>
           </div>
         </Card>
@@ -317,29 +372,37 @@ const CertificateForm = ({
           />
         </FormField>
 
-        <div className="text-center pt-4">
+        <div className="flex justify-between items-center pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowStorageInfo(true)}
+            startIcon={<InformationCircleIcon className="h-5 w-5" />}
+          >
+            About Permanent Storage
+          </Button>
+
           <Button
             type="submit"
             variant="primary"
             disabled={isLoading || !storageInitialized}
-            className="md:w-auto"
             isLoading={isLoading}
           >
             {isLoading ? 'Issuing Certificate...' : 'Issue Certificate'}
           </Button>
-
-          {!storageInitialized && (
-            <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-              You must initialize storage before issuing certificates.
-            </p>
-          )}
-
-          {contextError && (
-            <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-              {contextError}
-            </p>
-          )}
         </div>
+
+        {!storageInitialized && (
+          <p className="text-sm text-amber-600 dark:text-amber-400 mt-2 text-center">
+            You must initialize AR.IO storage before issuing certificates.
+          </p>
+        )}
+
+        {contextError && (
+          <p className="text-sm text-red-600 dark:text-red-400 mt-2 text-center">
+            {contextError}
+          </p>
+        )}
       </form>
 
       {/* Result Modal */}
@@ -347,6 +410,7 @@ const CertificateForm = ({
         isOpen={showResult}
         onClose={handleCloseResult}
         title={result?.success ? "Certificate Issued" : "Issuance Failed"}
+        size="lg"
       >
         {result?.success ? (
           <Card className="bg-green-50 dark:bg-green-900 dark:bg-opacity-20 border-0 p-6">
@@ -359,9 +423,9 @@ const CertificateForm = ({
                   Certificate Issued Successfully
                 </h3>
                 <div className="mt-2 text-sm text-green-700 dark:text-green-400">
-                  <p className="mb-2">Your certificate has been permanently stored and registered on the blockchain.</p>
+                  <p className="mb-2">Your certificate has been permanently stored on AR.IO testnet and registered on the blockchain.</p>
 
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-4 space-y-3">
                     <div>
                       <p className="font-medium">Certificate ID:</p>
                       <p className="font-mono text-xs break-all">
@@ -370,20 +434,35 @@ const CertificateForm = ({
                     </div>
 
                     <div>
-                      <p className="font-medium">Storage Transaction ID:</p>
+                      <p className="font-medium">Blockchain Transaction:</p>
                       <p className="font-mono text-xs break-all">
-                        {result.metadataURI?.replace('ar://', '')}
+                        {result.transactionHash}
                       </p>
                     </div>
 
-                    <div className="pt-2">
+                    <div>
+                      <p className="font-medium">AR.IO Storage Transaction:</p>
+                      <p className="font-mono text-xs break-all">
+                        {result.arweaveTxId}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 flex space-x-4">
                       <a
-                        href={`https://ar-io.net/${result.metadataURI?.replace('ar://', '')}`}
+                        href={`https://ar-io.dev/${result.arweaveTxId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary dark:text-primary-light hover:underline"
                       >
-                        View Storage Transaction
+                        View on AR.IO Testnet
+                      </a>
+                      <a
+                        href={`https://mumbai.polygonscan.com/tx/${result.transactionHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary dark:text-primary-light hover:underline"
+                      >
+                        View on Polygon
                       </a>
                     </div>
                   </div>
@@ -407,8 +486,8 @@ const CertificateForm = ({
                   <div className="mt-4">
                     <p className="font-medium">Troubleshooting:</p>
                     <ul className="list-disc list-inside mt-1 space-y-1">
-                      <li>Check your wallet connections</li>
-                      <li>Make sure storage is initialized</li>
+                      <li>Check your blockchain wallet connection</li>
+                      <li>Make sure AR.IO storage is initialized</li>
                       <li>Verify that the recipient address is valid</li>
                       <li>Try again in a few moments</li>
                     </ul>
@@ -418,6 +497,21 @@ const CertificateForm = ({
             </div>
           </Card>
         )}
+      </Modal>
+
+      {/* Storage Info Modal */}
+      <Modal
+        isOpen={showStorageInfo}
+        onClose={() => setShowStorageInfo(false)}
+        title="About AR.IO Permanent Storage"
+        size="lg"
+      >
+        <div className="p-6">
+          <PermanentStorageInfo
+            showConnectButton={!storageInitialized}
+            onConnectClick={handleInitializeStorage}
+          />
+        </div>
       </Modal>
     </div>
   );

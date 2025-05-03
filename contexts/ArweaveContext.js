@@ -10,30 +10,45 @@ import {
     loadWalletFromLocalStorage,
     saveWalletToLocalStorage,
     getTransactionStatus,
-    getGatewayUrl
+    getGatewayUrl,
+    disconnectWallet,
+    isWalletExtensionAvailable
 } from '../utils/storage/arweaveStorage';
+import {
+    initializeARIO,
+    getARIOClient,
+    requestTestnetTokens,
+    setupCaptchaListener
+} from '../utils/storage/arIOClient';
 
 // Create context
 const ArweaveContext = createContext(null);
 
 // Provider component
 export function ArweaveProvider({ children }) {
+    // State
     const [isInitialized, setIsInitialized] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [walletAddress, setWalletAddress] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [pendingTxs, setPendingTxs] = useState([]);
+    const [captchaWindow, setCaptchaWindow] = useState(null);
+    const [walletType, setWalletType] = useState(null);
 
-    // Check initial storage state
+    // Check initial storage state on mount
     useEffect(() => {
         const checkStorage = async () => {
             const initialized = isStorageInitialized();
             setIsInitialized(initialized);
 
             if (initialized) {
-                const address = await getCurrentWalletAddress();
-                setWalletAddress(address);
+                try {
+                    const address = await getCurrentWalletAddress();
+                    setWalletAddress(address);
+                } catch (err) {
+                    console.warn('Could not get current wallet address:', err);
+                }
             }
         };
 
@@ -49,13 +64,14 @@ export function ArweaveProvider({ children }) {
                 if (savedWallet) {
                     try {
                         setIsLoading(true);
-                        const success = await initializeStorage(savedWallet);
+                        const success = await initializeStorage(savedWallet, 'jwk');
                         setIsInitialized(success);
 
                         if (success) {
                             const address = await getCurrentWalletAddress();
                             setWalletAddress(address);
-                            showSuccessMessage('AR.io wallet initialized from saved wallet');
+                            setWalletType('jwk');
+                            showSuccessMessage('Arweave wallet initialized from saved wallet');
                         }
                     } catch (err) {
                         console.error('Error loading saved wallet:', err);
@@ -121,7 +137,7 @@ export function ArweaveProvider({ children }) {
     };
 
     // Initialize Arweave storage with wallet
-    const initialize = useCallback(async (wallet) => {
+    const initialize = useCallback(async (wallet, type = 'jwk') => {
         setIsLoading(true);
         setError(null);
 
@@ -131,27 +147,70 @@ export function ArweaveProvider({ children }) {
                 return true;
             }
 
-            const success = await initializeStorage(wallet);
+            const success = await initializeStorage(wallet, type);
 
             if (success) {
                 setIsInitialized(true);
+                setWalletType(type);
+
                 const address = await getCurrentWalletAddress();
                 setWalletAddress(address);
 
-                showSuccessMessage('AR.io wallet initialized successfully');
+                showSuccessMessage(`Arweave wallet (${type}) initialized successfully`);
                 return true;
             } else {
-                setError('Failed to initialize AR.io wallet');
+                setError('Failed to initialize Arweave wallet');
                 return false;
             }
         } catch (err) {
-            console.error('Error initializing AR.io wallet:', err);
-            setError(err.message || 'Failed to initialize AR.io wallet');
+            console.error('Error initializing Arweave wallet:', err);
+            setError(err.message || 'Failed to initialize Arweave wallet');
             return false;
         } finally {
             setIsLoading(false);
         }
     }, [isInitialized]);
+
+    // Initialize with ArConnect
+    const initializeWithArConnect = useCallback(async () => {
+        if (!isWalletExtensionAvailable('arconnect')) {
+            setError('ArConnect (Wander) extension not detected. Please install it first.');
+            return false;
+        }
+
+        return await initialize(null, 'arconnect');
+    }, [initialize]);
+
+    // Generate a test wallet for demo purposes
+    const generateTestWallet = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // For the demo, we'll first connect to AR.IO testnet without a wallet
+            // Then request tokens for testing
+            await initializeARIO();
+
+            // Generate a random wallet address for demo - in real implementation
+            // we would use a proper wallet, but for demo we'll use a random one
+            const tempWalletAddress = 'demo_' + Math.random().toString(36).substring(2, 15);
+
+            // Set as initialized since this is just for demo purposes
+            setIsInitialized(true);
+            setWalletAddress(tempWalletAddress);
+            setWalletType('demo');
+
+            showSuccessMessage('Demo wallet initialized for testing');
+
+            return true;
+        } catch (err) {
+            console.error('Error creating demo wallet:', err);
+            setError(err.message || 'Failed to create demo wallet');
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     // Store certificate metadata
     const storeCertificate = useCallback(async (certificateData) => {
@@ -160,13 +219,13 @@ export function ArweaveProvider({ children }) {
 
         try {
             if (!isInitialized) {
-                throw new Error('AR.io wallet not initialized');
+                throw new Error('Arweave wallet not initialized');
             }
 
             // Format metadata
             const formattedMetadata = formatCertificateMetadata(certificateData);
 
-            // Store on AR.io testnet
+            // Store on Arweave
             const txId = await storeCertificateMetadata(formattedMetadata);
 
             // Add to pending transactions
@@ -204,10 +263,6 @@ export function ArweaveProvider({ children }) {
         setError(null);
 
         try {
-            if (!isInitialized) {
-                throw new Error('AR.io wallet not initialized');
-            }
-
             const metadata = await retrieveCertificateMetadata(arweaveIdOrUri);
 
             return {
@@ -225,7 +280,94 @@ export function ArweaveProvider({ children }) {
         } finally {
             setIsLoading(false);
         }
-    }, [isInitialized]);
+    }, []);
+
+    // Request testnet tokens
+    const requestTokens = useCallback(async (amount = 100) => {
+        if (!isInitialized) {
+            setError('Wallet not initialized');
+            return { success: false, error: 'Wallet not initialized' };
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // If we don't have a wallet address, we can't request tokens
+            if (!walletAddress) {
+                throw new Error('No wallet address available');
+            }
+
+            // Request tokens from the faucet
+            const result = await requestTestnetTokens({
+                recipient: walletAddress,
+                amount
+            });
+
+            // If we need a captcha, open a window for it
+            if (result.needsCaptcha) {
+                // Set up listener for the captcha completion
+                const removeListener = setupCaptchaListener((token) => {
+                    // Close the captcha window if it's still open
+                    if (captchaWindow && !captchaWindow.closed) {
+                        captchaWindow.close();
+                    }
+
+                    // Try again with the token
+                    requestTestnetTokens({
+                        recipient: walletAddress,
+                        amount,
+                        authToken: token
+                    }).then((tokenResult) => {
+                        if (tokenResult.success) {
+                            showSuccessMessage(`Successfully requested ${amount} AR.IO testnet tokens!`);
+                        }
+                    }).catch((err) => {
+                        setError(`Failed to claim tokens: ${err.message}`);
+                    });
+
+                    // Clean up the listener
+                    removeListener();
+                });
+
+                // Open the captcha window
+                const newWindow = window.open(
+                    result.captchaUrl,
+                    '_blank',
+                    'width=600,height=600'
+                );
+
+                setCaptchaWindow(newWindow);
+
+                // Return early - the actual token request will happen after captcha
+                setIsLoading(false);
+
+                return {
+                    success: true,
+                    captchaRequired: true,
+                    message: 'Please complete the captcha to receive tokens'
+                };
+            }
+
+            // If we have a direct result (no captcha needed), show success
+            showSuccessMessage(`Successfully requested ${amount} AR.IO testnet tokens!`);
+
+            return {
+                success: true,
+                transactionId: result.transactionId
+            };
+        } catch (err) {
+            console.error('Error requesting tokens:', err);
+            setError(err.message || 'Failed to request tokens');
+
+            return {
+                success: false,
+                error: err.message || 'Unknown error'
+            };
+        } finally {
+            setIsLoading(false);
+        }
+    }, [isInitialized, walletAddress]);
 
     // Reset state
     const resetState = useCallback(() => {
@@ -234,31 +376,46 @@ export function ArweaveProvider({ children }) {
     }, []);
 
     // Disconnect wallet
-    const disconnectWallet = useCallback(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('verichain_arweave_wallet');
-        }
+    const disconnectArweaveWallet = useCallback(() => {
+        disconnectWallet();
 
         setIsInitialized(false);
         setWalletAddress(null);
+        setWalletType(null);
+        setPendingTxs([]);
 
-        showSuccessMessage('AR.io wallet disconnected');
+        showSuccessMessage('Arweave wallet disconnected');
     }, []);
 
     // Create the context value
     const value = {
+        // State
         isInitialized,
         isLoading,
         error,
         walletAddress,
         successMessage,
         pendingTxs,
+        walletType,
+
+        // Wallet operations
         initialize,
+        initializeWithArConnect,
+        generateTestWallet,
+        disconnectWallet: disconnectArweaveWallet,
+
+        // Certificate operations
         storeCertificate,
         retrieveCertificate,
+        formatCertificateMetadata,
+
+        // Testnet operations
+        requestTokens,
+
+        // Utility
         resetState,
-        disconnectWallet,
-        formatCertificateMetadata
+        getGatewayUrl,
+        isWalletExtensionAvailable,
     };
 
     return (

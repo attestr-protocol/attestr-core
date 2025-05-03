@@ -1,13 +1,14 @@
 // contexts/CertificateContext.js
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { certificateService } from '../utils/certificate/certificateService';
 import { isStorageInitialized } from '../utils/storage/arweaveStorage';
+import { useARIOStorage } from '../utils/hooks/useARIOStorage';
 
 // Create context
 const CertificateContext = createContext(null);
 
 /**
- * Provider component for certificate operations
+ * Enhanced provider component for certificate operations with AR.IO integration
  */
 export function CertificateProvider({ children }) {
     const [certificates, setCertificates] = useState([]);
@@ -15,6 +16,9 @@ export function CertificateProvider({ children }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+
+    // Get AR.IO storage hook
+    const arIOStorage = useARIOStorage();
     const [storageInitialized, setStorageInitialized] = useState(
         typeof window !== 'undefined' ? isStorageInitialized() : false
     );
@@ -29,8 +33,14 @@ export function CertificateProvider({ children }) {
         return false;
     }, []);
 
-    // Update storage status on mount
-    React.useEffect(() => {
+    // Update storage status when AR.IO status changes
+    useEffect(() => {
+        const initialized = arIOStorage.isInitialized();
+        setStorageInitialized(initialized);
+    }, [arIOStorage]);
+
+    // Check storage status on mount
+    useEffect(() => {
         checkStorageStatus();
     }, [checkStorageStatus]);
 
@@ -41,17 +51,29 @@ export function CertificateProvider({ children }) {
     };
 
     // Issue a certificate
-    const issueCertificate = useCallback(async (certificateData) => {
+    const issueCertificate = useCallback(async (certificateData, metadataURI = null) => {
         setIsLoading(true);
         setError(null);
 
         try {
             // Check if storage is initialized
             if (!checkStorageStatus()) {
-                throw new Error('Storage not initialized. Please initialize storage first.');
+                throw new Error('AR.IO storage not initialized. Please initialize storage first.');
             }
 
-            const result = await certificateService.issueCertificate(certificateData);
+            // If we don't have a metadataURI yet, store the metadata on AR.IO first
+            if (!metadataURI) {
+                const storageResult = await arIOStorage.storeCertificate(certificateData);
+
+                if (!storageResult.success) {
+                    throw new Error(storageResult.error || 'Failed to store certificate metadata on AR.IO testnet');
+                }
+
+                metadataURI = storageResult.arweaveUri;
+            }
+
+            // Issue certificate on blockchain
+            const result = await certificateService.issueCertificate(certificateData, metadataURI);
 
             if (result.success) {
                 showSuccess(`Certificate issued successfully with ID: ${result.certificateId.substring(0, 10)}...`);
@@ -77,7 +99,7 @@ export function CertificateProvider({ children }) {
         } finally {
             setIsLoading(false);
         }
-    }, [checkStorageStatus]);
+    }, [checkStorageStatus, arIOStorage]);
 
     // Verify a certificate
     const verifyCertificate = useCallback(async (certificateId) => {
@@ -160,7 +182,7 @@ export function CertificateProvider({ children }) {
     // Check if address is a verified issuer
     const checkIsVerifiedIssuer = useCallback(async (address) => {
         if (!address) {
-          return false;
+            return false;
         }
 
         try {
@@ -170,6 +192,15 @@ export function CertificateProvider({ children }) {
             return false;
         }
     }, []);
+
+    // Get certificate metadata from AR.IO
+    const getCertificateMetadata = useCallback(async (arweaveIdOrUri) => {
+        if (!arweaveIdOrUri) {
+            return { success: false, error: 'No AR.IO ID or URI provided' };
+        }
+
+        return await arIOStorage.retrieveCertificate(arweaveIdOrUri);
+    }, [arIOStorage]);
 
     // Clear current certificate
     const clearCurrentCertificate = useCallback(() => {
@@ -200,8 +231,14 @@ export function CertificateProvider({ children }) {
         recordVerification,
         loadUserCertificates,
         checkIsVerifiedIssuer,
+        getCertificateMetadata,
         clearCurrentCertificate,
         checkStorageStatus,
+
+        // AR.IO integration
+        arIOStorage,
+
+        // Reset state
         resetState,
     }), [
         certificates,
@@ -215,8 +252,10 @@ export function CertificateProvider({ children }) {
         recordVerification,
         loadUserCertificates,
         checkIsVerifiedIssuer,
+        getCertificateMetadata,
         clearCurrentCertificate,
         checkStorageStatus,
+        arIOStorage,
         resetState,
     ]);
 

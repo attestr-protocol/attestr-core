@@ -13,12 +13,15 @@ import {
     ExclamationIcon,
     CheckCircleIcon,
     SwitchHorizontalIcon,
-    ChipIcon
+    ChipIcon,
+    CubeIcon,
+    CurrencyDollarIcon,
+    RefreshIcon
 } from '@heroicons/react/outline';
 
 /**
- * Unified wallet management component that handles both
- * blockchain wallet (MetaMask) and storage wallet (Arweave)
+ * Enhanced wallet management component that handles both
+ * blockchain wallet (MetaMask) and Arweave storage wallet (AR.IO)
  * 
  * @param {Object} props
  * @param {Function} props.onBlockchainConnect - Callback when blockchain wallet connects
@@ -40,6 +43,8 @@ const WalletManager = ({
     const [arweaveError, setArweaveError] = useState(null);
     const [walletFile, setWalletFile] = useState(null);
     const [walletKey, setWalletKey] = useState('');
+    const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+    const [tokenAmount, setTokenAmount] = useState(100);
 
     // Blockchain wallet context
     const {
@@ -57,9 +62,15 @@ const WalletManager = ({
         walletAddress: arweaveAddress,
         isInitialized: isArweaveInitialized,
         isLoading: isArweaveLoading,
+        error: arweaveContextError,
+        successMessage: arweaveSuccessMessage,
+        walletType: arweaveWalletType,
+        initializeWithArConnect,
         generateTestWallet,
         initialize: initializeArweave,
-        error: arweaveContextError
+        disconnectWallet: disconnectArweave,
+        requestTokens,
+        isWalletExtensionAvailable
     } = useArweave();
 
     // Set error from context
@@ -98,6 +109,27 @@ const WalletManager = ({
         } catch (error) {
             console.error('Error generating demo wallet:', error);
             setArweaveError(error.message || 'Failed to generate demo wallet');
+        }
+    };
+
+    // Handle ArConnect connection
+    const handleConnectWithArConnect = async () => {
+        if (!isWalletExtensionAvailable('arconnect')) {
+            setArweaveError('ArConnect extension not detected. Please install it first.');
+            return;
+        }
+
+        try {
+            const success = await initializeWithArConnect();
+            if (success) {
+                setIsArweaveModalOpen(false);
+                if (onStorageConnect) {
+                    onStorageConnect(arweaveAddress);
+                }
+            }
+        } catch (error) {
+            console.error('Error connecting with ArConnect:', error);
+            setArweaveError(error.message || 'Failed to connect with ArConnect');
         }
     };
 
@@ -173,29 +205,30 @@ const WalletManager = ({
         }
     };
 
-    // Check if ArConnect is installed
-    const isArConnectInstalled = () => {
-        return typeof window !== 'undefined' && !!window.arweaveWallet;
-    };
-
-    // Connect with ArConnect
-    const handleConnectWithArConnect = async () => {
-        if (!isArConnectInstalled()) {
-            setArweaveError('ArConnect extension not detected. Please install it first.');
+    // Request testnet tokens
+    const handleRequestTokens = async () => {
+        if (!isArweaveInitialized) {
+            setArweaveError('Wallet not initialized. Please connect a wallet first.');
             return;
         }
 
         try {
-            const success = await initializeArweave(null, 'arconnect');
-            if (success) {
-                setIsArweaveModalOpen(false);
-                if (onStorageConnect) {
-                    onStorageConnect(arweaveAddress);
+            const amount = parseInt(tokenAmount, 10);
+            if (isNaN(amount) || amount <= 0) {
+                throw new Error('Invalid token amount');
+            }
+
+            const result = await requestTokens(amount);
+            if (result.success) {
+                if (!result.captchaRequired) {
+                    setIsTokenModalOpen(false);
                 }
+            } else {
+                throw new Error(result.error || 'Failed to request tokens');
             }
         } catch (error) {
-            console.error('Error connecting with ArConnect:', error);
-            setArweaveError(error.message || 'Failed to connect with ArConnect');
+            console.error('Error requesting tokens:', error);
+            setArweaveError(error.message || 'Failed to request tokens');
         }
     };
 
@@ -207,6 +240,15 @@ const WalletManager = ({
                     <button
                         className={`px-4 py-2 font-medium ${currentTab === 'blockchain'
                             ? 'border-b-2 border-primary text-primary dark:text-primary-light'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                        onClick={() => setCurrentTab('blockchain')}
+                    >
+                        Blockchain Wallet
+                    </button>
+                    <button
+                        className={`px-4 py-2 font-medium ${currentTab === 'storage'
+                            ? 'border-b-2 border-secondary text-secondary dark:text-secondary-light'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         onClick={() => setCurrentTab('storage')}
@@ -252,7 +294,7 @@ const WalletManager = ({
                                             <span className="block font-medium text-gray-500 dark:text-gray-400">
                                                 Chain ID
                                             </span>
-                                            <span>Mumbai Testnet (80001)</span>
+                                            <span>Polygon Amoy Testnet (80001)</span>
                                         </div>
                                         <div>
                                             <span className="block font-medium text-gray-500 dark:text-gray-400">
@@ -300,7 +342,7 @@ const WalletManager = ({
                             {!networkSupported && blockchainAddress && (
                                 <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-200 rounded-md">
                                     <p className="text-sm">
-                                        Please switch to the Mumbai Testnet to use this application.
+                                        Please switch to the Polygon Amoy Testnet to use this application.
                                     </p>
                                     <button
                                         onClick={switchNetwork}
@@ -321,43 +363,87 @@ const WalletManager = ({
                 </Card>
             )}
 
-            {/* Storage Wallet Section */}
+            {/* Arweave Storage Wallet Section */}
             {(!showBoth || currentTab === 'storage') && (
                 <Card>
                     {isArweaveInitialized && arweaveAddress ? (
                         <div className="p-4">
-                            <h3 className="text-lg font-medium mb-2">Storage Wallet Connected</h3>
-                            <p className="text-sm mb-3">Your certificates will be permanently stored on Arweave.</p>
+                            <h3 className="text-lg font-medium mb-2">AR.IO Storage Wallet Connected</h3>
+                            <p className="text-sm mb-3">Your certificates will be permanently stored on AR.IO testnet.</p>
 
                             <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md mb-3">
-                                <p className="text-xs text-gray-500 mb-1">Wallet Address</p>
-                                <div className="flex items-center">
-                                    <p className="font-mono text-sm break-all">{arweaveAddress}</p>
-                                    <CopyButton text={arweaveAddress} className="ml-2" />
+                                <div className="flex flex-wrap justify-between items-start gap-2">
+                                    <div className="flex-grow">
+                                        <p className="text-xs text-gray-500 mb-1">Wallet Address</p>
+                                        <div className="flex items-center">
+                                            <p className="font-mono text-sm break-all">{arweaveAddress}</p>
+                                            <CopyButton text={arweaveAddress} className="ml-2" />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Connected with {arweaveWalletType === 'arconnect' ? 'ArConnect' :
+                                                arweaveWalletType === 'jwk' ? 'JWK Wallet' : 'Demo Wallet'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsTokenModalOpen(true)}
+                                            startIcon={<CurrencyDollarIcon className="h-4 w-4" />}
+                                        >
+                                            Request Tokens
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={disconnectArweave}
+                                        >
+                                            Disconnect
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md text-green-700 dark:text-green-300 text-sm">
                                 <div className="flex">
                                     <CheckCircleIcon className="h-5 w-5 flex-shrink-0 mr-2" />
-                                    <p>Storage is ready for certificate issuance.</p>
+                                    <p>Storage is ready for certificate issuance on AR.IO testnet.</p>
                                 </div>
                             </div>
+
+                            {arweaveSuccessMessage && (
+                                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md text-blue-700 dark:text-blue-300 text-sm">
+                                    {arweaveSuccessMessage}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="p-6">
                             <div className="flex items-start mb-4">
                                 <ExclamationIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5 mr-2" />
                                 <div>
-                                    <h3 className="text-lg font-medium">Initialize Storage</h3>
+                                    <h3 className="text-lg font-medium">Initialize AR.IO Storage</h3>
                                     <p className="text-gray-600 dark:text-gray-300 mt-1 mb-4">
-                                        VeriChain needs to set up storage for certificate metadata before you can issue credentials.
-                                        Your certificates will be stored permanently on Arweave.
+                                        VeriChain needs to connect to AR.IO network for permanent certificate storage.
+                                        Your certificates will be stored permanently on the AR.IO testnet.
                                     </p>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
+                                {isWalletExtensionAvailable('arconnect') && (
+                                    <Button
+                                        variant="primary"
+                                        onClick={handleConnectWithArConnect}
+                                        disabled={isArweaveLoading}
+                                        isLoading={isArweaveLoading}
+                                        fullWidth
+                                        startIcon={<CubeIcon className="h-5 w-5" />}
+                                    >
+                                        Connect with ArConnect
+                                    </Button>
+                                )}
+
                                 <Button
                                     variant="primary"
                                     onClick={handleConnectDemoStorage}
@@ -378,7 +464,7 @@ const WalletManager = ({
                                 </Button>
 
                                 <p className="text-xs text-gray-500 text-center mt-2">
-                                    For this demo, we recommend using the demo storage option.
+                                    For this demo, we recommend using the demo storage option or ArConnect.
                                 </p>
                             </div>
 
@@ -408,7 +494,7 @@ const WalletManager = ({
 
                     <div className="mb-6">
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                            Connect your Arweave wallet to store certificate metadata permanently on the network.
+                            Connect your Arweave wallet to store certificate metadata permanently on the AR.IO testnet.
                         </p>
                     </div>
 
@@ -421,15 +507,15 @@ const WalletManager = ({
                         <Button
                             variant="primary"
                             onClick={handleConnectWithArConnect}
-                            disabled={!isArConnectInstalled() || isArweaveLoading}
+                            disabled={!isWalletExtensionAvailable('arconnect') || isArweaveLoading}
                             isLoading={isArweaveLoading}
                             fullWidth
                         >
-                            {isArConnectInstalled()
+                            {isWalletExtensionAvailable('arconnect')
                                 ? 'Connect with ArConnect'
                                 : 'ArConnect Not Installed'}
                         </Button>
-                        {!isArConnectInstalled() && (
+                        {!isWalletExtensionAvailable('arconnect') && (
                             <p className="text-xs text-gray-500 mt-2">
                                 <a
                                     href="https://www.arconnect.io"
@@ -488,6 +574,71 @@ const WalletManager = ({
                         >
                             Connect with JSON
                         </Button>
+                    </Card>
+                </div>
+            </Modal>
+
+            {/* Token Request Modal */}
+            <Modal
+                isOpen={isTokenModalOpen}
+                onClose={() => setIsTokenModalOpen(false)}
+                title="Request AR.IO Testnet Tokens"
+                size="md"
+            >
+                <div className="p-4 space-y-4">
+                    {arweaveError && (
+                        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-3 rounded-md mb-4">
+                            {arweaveError}
+                        </div>
+                    )}
+
+                    <div className="mb-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                            Request testnet tokens to use for storing certificates on the AR.IO testnet.
+                            These tokens have no real-world value and are only for testing purposes.
+                        </p>
+                    </div>
+
+                    <Card className="p-4">
+                        <h3 className="text-md font-medium mb-3">Token Amount</h3>
+                        <div className="mb-4">
+                            <TextInput
+                                type="number"
+                                min="1"
+                                max="1000"
+                                value={tokenAmount}
+                                onChange={(e) => setTokenAmount(e.target.value)}
+                                placeholder="100"
+                                className="w-full"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Enter the number of AR.IO testnet tokens to request (1-1000)
+                            </p>
+                        </div>
+                        <div className="flex space-x-3">
+                            <Button
+                                variant="primary"
+                                onClick={handleRequestTokens}
+                                disabled={isArweaveLoading}
+                                isLoading={isArweaveLoading}
+                                fullWidth
+                                startIcon={<CurrencyDollarIcon className="h-5 w-5" />}
+                            >
+                                Request Tokens
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsTokenModalOpen(false)}
+                                disabled={isArweaveLoading}
+                                fullWidth
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-4">
+                            Note: You may need to complete a captcha to prevent abuse.
+                            A new window will open for this purpose.
+                        </p>
                     </Card>
                 </div>
             </Modal>
