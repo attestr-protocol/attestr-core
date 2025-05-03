@@ -1,3 +1,4 @@
+// scripts/deploy.js
 const fs = require('fs');
 const path = require('path');
 const hre = require("hardhat");
@@ -6,19 +7,43 @@ async function main() {
     console.log(`Deploying VeriChain contracts to ${hre.network.name} network...`);
     console.log(`Network ID: ${hre.network.config.chainId}`);
 
-    // Deploy Certificate Issuance contract
+    // Get the contract factory
     const CertificateIssuance = await hre.ethers.getContractFactory("CertificateIssuance");
+    const Verification = await hre.ethers.getContractFactory("Verification");
+
+    // Deploy Certificate Issuance contract
+    console.log("Deploying CertificateIssuance...");
     const certificateIssuance = await CertificateIssuance.deploy();
     await certificateIssuance.deployed();
-
     console.log("CertificateIssuance deployed to:", certificateIssuance.address);
 
     // Deploy Verification contract with Certificate address
-    const Verification = await hre.ethers.getContractFactory("Verification");
+    console.log("Deploying Verification contract...");
     const verification = await Verification.deploy(certificateIssuance.address);
     await verification.deployed();
-
     console.log("Verification deployed to:", verification.address);
+
+    // Wait a few blocks for contract deployment to be secure
+    console.log("Waiting for confirmations...");
+    await certificateIssuance.deployTransaction.wait(5);
+    await verification.deployTransaction.wait(5);
+    console.log("Confirmed!");
+
+    // Add a few demo issuers to the contract
+    // NOTE: In production, you would add real institutions 
+    if (hre.network.name === 'localhost' || hre.network.name === 'amoy') {
+        console.log("Setting up demo issuers...");
+
+        const [owner, issuer1, issuer2] = await hre.ethers.getSigners();
+
+        // Grant issuer role to test accounts
+        const ISSUER_ROLE = hre.ethers.utils.keccak256(hre.ethers.utils.toUtf8Bytes("ISSUER_ROLE"));
+        await certificateIssuance.grantIssuerRole(issuer1.address);
+        await certificateIssuance.grantIssuerRole(issuer2.address);
+
+        console.log(`Granted issuer role to ${issuer1.address}`);
+        console.log(`Granted issuer role to ${issuer2.address}`);
+    }
 
     // Output deployment information
     console.log("\nDeployment Summary:");
@@ -29,7 +54,31 @@ async function main() {
     console.log("Verification:", verification.address);
     console.log("-------------------");
 
-    // Update .env.local file with contract addresses
+    // Create or update the deployments directory
+    const deploymentsDir = path.resolve(__dirname, '../deployments');
+    if (!fs.existsSync(deploymentsDir)) {
+        fs.mkdirSync(deploymentsDir, { recursive: true });
+    }
+
+    // Write deployment addresses to a network-specific JSON file
+    const deploymentPath = path.resolve(deploymentsDir, `${hre.network.name}.json`);
+    const deploymentInfo = {
+        network: hre.network.name,
+        chainId: hre.network.config.chainId,
+        timestamp: new Date().toISOString(),
+        contracts: {
+            CertificateIssuance: certificateIssuance.address,
+            Verification: verification.address
+        }
+    };
+
+    fs.writeFileSync(
+        deploymentPath,
+        JSON.stringify(deploymentInfo, null, 2)
+    );
+    console.log(`Deployment info saved to ${deploymentPath}`);
+
+    // Update the .env.local file
     try {
         const envPath = path.resolve(__dirname, '../../.env.local');
         let envContent = '';
@@ -57,36 +106,15 @@ async function main() {
         // Write updated content
         fs.writeFileSync(envPath, envContent);
         console.log("Contract addresses saved to .env.local");
-
-        // Generate a deployment info file for reference
-        const deploymentInfo = {
-            network: hre.network.name,
-            chainId: hre.network.config.chainId,
-            timestamp: new Date().toISOString(),
-            contracts: {
-                CertificateIssuance: certificateIssuance.address,
-                Verification: verification.address
-            }
-        };
-
-        fs.writeFileSync(
-            path.resolve(__dirname, '../deployments', `${hre.network.name}.json`),
-            JSON.stringify(deploymentInfo, null, 2)
-        );
-        console.log(`Deployment info saved to deployments/${hre.network.name}.json`);
     } catch (error) {
         console.warn("Could not update environment files:", error.message);
         console.log("Please manually update your .env.local with these addresses");
     }
+
+    console.log("Deployment complete!");
 }
 
-// Make sure the deployments directory exists
-try {
-    fs.mkdirSync(path.resolve(__dirname, '../deployments'), { recursive: true });
-} catch (error) {
-    // Directory already exists or cannot be created
-}
-
+// Execute deployment
 main()
     .then(() => process.exit(0))
     .catch((error) => {

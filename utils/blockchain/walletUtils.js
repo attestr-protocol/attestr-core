@@ -1,3 +1,4 @@
+// utils/blockchain/walletUtils.js
 import { ethers } from 'ethers';
 
 /**
@@ -33,9 +34,71 @@ export const getProvider = () => {
         return provider;
     }
 
+    // Get network-specific RPC URL based on environment
+    const getNetworkRpcUrl = () => {
+        // Check if we're using Amoy
+        if (process.env.AMOY_RPC_URL) {
+            return process.env.AMOY_RPC_URL;
+        }
+        // Check if we're using Mumbai
+        if (process.env.MUMBAI_RPC_URL) {
+            return process.env.MUMBAI_RPC_URL;
+        }
+        // Fallback to generic RPC URL
+        return process.env.NEXT_PUBLIC_RPC_URL || "https://polygon-amoy.g.alchemy.com/v2/your-api-key";
+    };
+
     // Fallback to a JSON-RPC provider (for server-side rendering or if MetaMask is not available)
-    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
+    const rpcUrl = getNetworkRpcUrl();
     return new ethers.providers.JsonRpcProvider(rpcUrl);
+};
+
+/**
+ * Get network details based on environment variables
+ * @returns {Object} Network details
+ */
+export const getNetworkDetails = () => {
+    // Determine which network config to use based on available env vars
+    if (process.env.AMOY_CHAIN_ID) {
+        return {
+            name: 'Polygon Amoy Testnet',
+            chainId: parseInt(process.env.AMOY_CHAIN_ID, 10),
+            rpcUrl: process.env.AMOY_RPC_URL,
+            explorerUrl: process.env.AMOY_EXPLORER_URL || 'https://www.oklink.com/amoy',
+            nativeCurrency: {
+                name: 'MATIC',
+                symbol: 'MATIC',
+                decimals: 18
+            }
+        };
+    }
+
+    if (process.env.MUMBAI_CHAIN_ID) {
+        return {
+            name: 'Polygon Mumbai Testnet',
+            chainId: parseInt(process.env.MUMBAI_CHAIN_ID, 10),
+            rpcUrl: process.env.MUMBAI_RPC_URL,
+            explorerUrl: process.env.MUMBAI_EXPLORER_URL || 'https://mumbai.polygonscan.com',
+            nativeCurrency: {
+                name: 'MATIC',
+                symbol: 'MATIC',
+                decimals: 18
+            }
+        };
+    }
+
+    // Fallback to generic network config
+    return {
+        name: process.env.NEXT_PUBLIC_CHAIN_NAME || 'Polygon Amoy Testnet',
+        chainId: parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80002', 10),
+        rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
+        explorerUrl: process.env.NEXT_PUBLIC_EXPLORER_URL || 'https://www.oklink.com/amoy',
+        nativeCurrency: {
+            name: 'MATIC',
+            symbol: 'MATIC',
+            decimals: 18
+        }
+    };
 };
 
 /**
@@ -50,11 +113,10 @@ export const isSupportedNetwork = async () => {
     try {
         const provider = getProvider();
         const { chainId } = await provider.getNetwork();
+        const networkDetails = getNetworkDetails();
 
-        // Get target chain ID from environment or fallback to Amoy (80002)
-        const targetChainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10);
-
-        return chainId === targetChainId;
+        // Check if the current chain ID matches the target chain ID
+        return chainId === networkDetails.chainId;
     } catch (error) {
         console.error("Error checking network:", error);
         return false;
@@ -62,17 +124,19 @@ export const isSupportedNetwork = async () => {
 };
 
 /**
- * Switch to the Polygon Amoy network
+ * Switch to the configured testnet network
  * @returns {Promise<boolean>} Success state
  */
-export const switchToAmoyNetwork = async () => {
+export const switchToConfiguredNetwork = async () => {
     if (!isMetaMaskInstalled()) {
         return false;
     }
 
     try {
-        // Chain ID as hex string (80002 = 0x13882)
-        const chainIdHex = `0x${parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10).toString(16)}`;
+        const networkDetails = getNetworkDetails();
+
+        // Chain ID as hex string
+        const chainIdHex = `0x${networkDetails.chainId.toString(16)}`;
 
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
@@ -83,29 +147,26 @@ export const switchToAmoyNetwork = async () => {
         // If the network is not added to MetaMask, add it
         if (error.code === 4902) {
             try {
+                const networkDetails = getNetworkDetails();
                 await window.ethereum.request({
                     method: 'wallet_addEthereumChain',
                     params: [
                         {
-                            chainId: `0x${parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '80002', 10).toString(16)}`,
-                            chainName: process.env.NEXT_PUBLIC_CHAIN_NAME || 'Polygon Amoy Testnet',
-                            nativeCurrency: {
-                                name: 'MATIC',
-                                symbol: 'MATIC',
-                                decimals: 18,
-                            },
-                            rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL || 'https://polygon-amoy.g.alchemy.com/v2/your-api-key'],
-                            blockExplorerUrls: [process.env.NEXT_PUBLIC_EXPLORER_URL || 'https://www.oklink.com/amoy'],
+                            chainId: `0x${networkDetails.chainId.toString(16)}`,
+                            chainName: networkDetails.name,
+                            nativeCurrency: networkDetails.nativeCurrency,
+                            rpcUrls: [networkDetails.rpcUrl],
+                            blockExplorerUrls: [networkDetails.explorerUrl],
                         },
                     ],
                 });
                 return true;
             } catch (addError) {
-                console.error('Error adding Polygon Amoy network:', addError);
+                console.error(`Error adding ${getNetworkDetails().name} network:`, addError);
                 return false;
             }
         }
-        console.error('Error switching to Polygon Amoy network:', error);
+        console.error(`Error switching to ${getNetworkDetails().name} network:`, error);
         return false;
     }
 };
