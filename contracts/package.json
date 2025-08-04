@@ -15,7 +15,9 @@
     "clean": "hardhat clean",
     "lint": "solhint 'contracts/**/*.sol'",
     "prettier": "prettier --write 'contracts/**/*.sol'",
-    "gas-report": "REPORT_GAS=true hardhat test"
+    "gas-report": "REPORT_GAS=true hardhat test",
+    "typecheck": "tsc --noEmit",
+    "typechain": "hardhat typechain"
   },
   "keywords": [
     "blockchain",
@@ -29,12 +31,16 @@
   "author": "VeriChain Team",
   "license": "MIT",
   "devDependencies": {
+    "@nomicfoundation/hardhat-verify": "^2.1.0",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.6",
     "@openzeppelin/hardhat-upgrades": "^1.25.3",
     "@typechain/ethers-v5": "^10.2.1",
     "@typechain/hardhat": "^6.1.6",
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.1.0",
     "chai": "^4.3.7",
     "dotenv": "^16.3.1",
     "ethereum-waffle": "^4.0.10",
@@ -46,7 +52,9 @@
     "solhint": "^3.4.1",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.8.4",
-    "typechain": "^8.3.1"
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.1",
+    "typescript": "^5.9.2"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.6",

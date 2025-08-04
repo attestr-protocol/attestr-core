@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "lib": ["es2020"],
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "types": ["node", "mocha", "chai"]
+  },
+  "include": [
+    "./scripts/**/*",
+    "./test/**/*",
+    "./typechain-types/**/*",
+    "./hardhat.config.ts",
+    "./types.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "cache",
+    "artifacts"
+  ],
+  "ts-node": {
+    "require": ["hardhat/register"]
+  }
+}
