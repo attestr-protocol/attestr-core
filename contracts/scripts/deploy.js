@@ -4,18 +4,18 @@ const path = require('path');
 const hre = require("hardhat");
 
 async function main() {
-    console.log(`Deploying VeriChain contracts to ${hre.network.name} network...`);
+    console.log(`Deploying Attestr Protocol contracts to ${hre.network.name} network...`);
     console.log(`Network ID: ${hre.network.config.chainId}`);
 
     // Get the contract factory
-    const CertificateIssuance = await hre.ethers.getContractFactory("CertificateIssuance");
+    const AttestationRegistry = await hre.ethers.getContractFactory("AttestationRegistry");
     const Verification = await hre.ethers.getContractFactory("Verification");
 
-    // Deploy Certificate Issuance contract
-    console.log("Deploying CertificateIssuance...");
-    const certificateIssuance = await CertificateIssuance.deploy();
-    await certificateIssuance.deployed();
-    console.log("CertificateIssuance deployed to:", certificateIssuance.address);
+    // Deploy Attestation Registry contract
+    console.log("Deploying AttestationRegistry...");
+    const attestationRegistry = await AttestationRegistry.deploy();
+    await attestationRegistry.deployed();
+    console.log("AttestationRegistry deployed to:", attestationRegistry.address);
 
     // Deploy Verification contract with Certificate address
     console.log("Deploying Verification contract...");

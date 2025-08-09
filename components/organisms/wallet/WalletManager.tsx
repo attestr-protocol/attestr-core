@@ -337,7 +337,7 @@ const WalletManager: React.FC<WalletManagerProps> = ({
                         <div className="text-center p-6">
                             <h3 className="text-lg font-medium mb-6">Connect Your Wallet</h3>
                             <p className="text-gray-600 dark:text-gray-300 mb-6">
-                                Connect your Ethereum wallet to interact with VeriChain.
+                                Connect your Ethereum wallet to interact with Attestr Protocol.
                             </p>
                             <Button
                                 variant="primary"

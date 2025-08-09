@@ -84,15 +84,15 @@ const IssuePage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>Issue Certificate | VeriChain</title>
-                <meta name="description" content="Issue new blockchain-verified credentials with permanent storage on AR.IO" />
+                <title>Create Attestation | Attestr Protocol</title>
+                <meta name="description" content="Create new blockchain-verified attestations with permanent storage on Arweave" />
             </Head>
 
             <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold">Issue New Certificate</h1>
+                    <h1 className="text-3xl font-bold">Create New Attestation</h1>
                     <p className="text-gray-600 dark:text-gray-300">
-                        Create and issue a new blockchain-verified credential with permanent storage on AR.IO testnet.
+                        Create and issue a new blockchain-verified attestation with permanent storage on Arweave.
                     </p>
                 </div>
 
@@ -105,8 +105,8 @@ const IssuePage: NextPage = () => {
                         <div className="ml-3">
                             <h3 className="text-sm font-medium">About Permanent Storage</h3>
                             <p className="text-sm mt-1">
-                                VeriChain uses AR.IO testnet for permanent, decentralized storage of credential metadata.
-                                This ensures your certificates remain accessible even if the issuing institution no longer exists.
+                                Attestr Protocol uses Arweave for permanent, decentralized storage of attestation metadata.
+                                This ensures your attestations remain accessible even if the issuing entity no longer exists.
                                 <button
                                     onClick={() => setShowStorageModal(true)}
                                     className="ml-1 text-primary dark:text-primary-light hover:underline"

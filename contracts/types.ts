@@ -1,4 +1,4 @@
-// Type definitions for VeriChain smart contracts
+// Type definitions for Attestr Protocol smart contracts
 import { ContractInterface } from 'ethers';
 
 // Common types

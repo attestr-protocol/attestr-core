@@ -76,18 +76,18 @@ const VerifyPage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>Verify Certificate | VeriChain</title>
-                <meta name="description" content="Verify the authenticity of blockchain credentials" />
+                <title>Verify Attestation | Attestr Protocol</title>
+                <meta name="description" content="Verify the authenticity of blockchain attestations" />
             </Head>
 
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-10 text-center">
                     <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
-                        Verify Certificate
+                        Verify Attestation
                     </h1>
                     <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                        Instantly verify the authenticity of any certificate issued on VeriChain.
+                        Instantly verify the authenticity of any attestation issued on Attestr Protocol.
                     </p>
                 </div>
 
@@ -97,7 +97,7 @@ const VerifyPage: NextPage = () => {
                         <form onSubmit={handleVerify} className="space-y-6">
                             <div>
                                 <label htmlFor="certificateId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Certificate ID
+                                    Attestation ID
                                 </label>
                                 <TextInput
                                     id="certificateId"

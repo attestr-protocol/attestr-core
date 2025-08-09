@@ -93,7 +93,7 @@ const CertificateDetailPage: NextPage = () => {
         <>
             <Head>
                 <title>
-                    {certificate?.credential?.title || certificate?.metadata?.credential?.title || 'Certificate Verification'} | VeriChain
+                    {certificate?.credential?.title || certificate?.metadata?.credential?.title || 'Attestation Verification'} | Attestr Protocol
                 </title>
                 <meta
                     name="description"

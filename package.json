@@ -1,7 +1,14 @@
 {
-  "name": "verichain",
+  "name": "@attestr/core",
   "version": "0.1.0",
+  "description": "Attestr Protocol - Universal Verification Infrastructure",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/attestr-protocol/attestr-core"
+  },
+  "author": "Attestr Protocol Team",
+  "homepage": "https://attestr.io",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

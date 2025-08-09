@@ -37,23 +37,23 @@ const Home: NextPage = () => {
   // Features list
   const features: Feature[] = [
     {
-      name: 'Tamper-Proof Storage',
-      description: 'Certificates are immutable once issued and stored on the blockchain, ensuring they cannot be altered or forged.',
+      name: 'Immutable Attestations',
+      description: 'Attestations are tamper-proof once issued and stored on the blockchain, ensuring they cannot be altered or forged.',
       icon: LockClosedIcon,
     },
     {
       name: 'Instant Verification',
-      description: 'Verify the authenticity of any certificate in seconds without contacting the issuing institution.',
+      description: 'Verify the authenticity of any attestation in seconds without contacting the issuing entity.',
       icon: CheckCircleIcon,
     },
     {
-      name: 'Ownership Control',
-      description: 'Recipients maintain full control over their credentials and can share them selectively.',
+      name: 'Subject Control',
+      description: 'Subjects maintain full control over their attestations and can share them selectively.',
       icon: ShieldCheckIcon,
     },
     {
       name: 'Permanent Record',
-      description: 'Credentials remain accessible even if the issuing institution no longer exists.',
+      description: 'Attestations remain accessible even if the issuing entity no longer exists.',
       icon: ClockIcon,
     },
   ];
@@ -61,22 +61,22 @@ const Home: NextPage = () => {
   // Main actions
   const actions: Action[] = [
     {
-      title: 'Issue Certificate',
-      description: 'Create and issue blockchain-backed certificates as a verified institution.',
+      title: 'Create Attestation',
+      description: 'Create and issue blockchain-backed attestations as a verified attester.',
       icon: DocumentTextIcon,
       href: '/issue',
       color: 'primary',
     },
     {
-      title: 'Verify Certificate',
-      description: 'Instantly verify the authenticity of any certificate issued on VeriChain.',
+      title: 'Verify Attestation',
+      description: 'Instantly verify the authenticity of any attestation issued on Attestr Protocol.',
       icon: CheckCircleIcon,
       href: '/verify',
       color: 'secondary',
     },
     {
       title: 'Manage Profile',
-      description: 'Access and manage your issued and received certificates.',
+      description: 'Access and manage your issued and received attestations.',
       icon: UserCircleIcon,
       href: '/profile',
       color: 'success',
@@ -86,20 +86,20 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>VeriChain - Decentralized Credential Verification</title>
-        <meta name="description" content="Secure, blockchain-based verification of academic and professional credentials" />
+        <title>Attestr Protocol - Universal Verification Infrastructure</title>
+        <meta name="description" content="Attestr Protocol - Universal verification infrastructure for Web3. Attest to truth, verify everything." />
       </Head>
 
       {/* Hero Section */}
       <section className="py-12 sm:py-16 md:py-20 -mt-6">
         <div className="max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            <span className="block">Securing Credentials with</span>
-            <span className="block text-primary dark:text-primary-light">Blockchain Technology</span>
+            <span className="block">Universal Verification</span>
+            <span className="block text-primary dark:text-primary-light">Infrastructure for Web3</span>
           </h1>
           <p className="mt-6 text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            VeriChain provides a decentralized platform for issuing, verifying, and managing
-            academic and professional credentials with the security of blockchain.
+            Attestr Protocol enables anyone to issue, verify, and manage attestations across any domain.
+            From credentials to supply chains - attest to truth with blockchain security.
           </p>
           <div className="mt-8 sm:mt-10 flex justify-center gap-4 flex-wrap">
             {address ?
@@ -125,7 +125,7 @@ const Home: NextPage = () => {
                 size="lg"
                 startIcon={<CheckCircleIcon className="h-5 w-5" />}
               >
-                Verify a Certificate
+                Verify an Attestation
               </Button>
             </Link>
           </div>
@@ -137,10 +137,10 @@ const Home: NextPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              Why Use VeriChain?
+              Why Attestr Protocol?
             </h2>
             <p className="mt-4 max-w-2xl text-lg text-gray-600 dark:text-gray-300 mx-auto">
-              Our blockchain-based platform offers unmatched security and reliability for credential verification.
+              The universal verification protocol that serves any attestation need across all domains.
             </p>
           </div>
 
@@ -166,7 +166,7 @@ const Home: NextPage = () => {
       <section className="py-12 mt-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white text-center mb-12">
-            Get Started with VeriChain
+            Get Started with Attestr Protocol
           </h2>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -202,7 +202,7 @@ const Home: NextPage = () => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              How VeriChain Works
+              How Attestr Protocol Works
             </h2>
             <p className="mt-4 max-w-2xl text-lg text-gray-600 dark:text-gray-300 mx-auto">
               Our platform uses blockchain technology to provide a transparent and secure credential verification system.
@@ -265,7 +265,7 @@ const Home: NextPage = () => {
               Open Source & Community-Driven
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
-              VeriChain is an open-source project, built by the community for the community.
+              Attestr Protocol is an open-source project, built by the community for the community.
               Join us in revolutionizing credential verification.
             </p>
           </div>
@@ -275,9 +275,9 @@ const Home: NextPage = () => {
               <div className="text-center">
                 <h3 className="text-2xl font-bold mb-2">Contribute on GitHub</h3>
                 <p className="mb-4 text-gray-600 dark:text-gray-300">
-                  Help us improve VeriChain by contributing to our codebase.
+                  Help us improve Attestr Protocol by contributing to our codebase.
                 </p>
-                <a href="https://github.com/SuryanshSS1011/VeriChain"
+                <a href="https://github.com/attestr-protocol/attestr-core"
                   className="inline-flex items-center text-primary dark:text-primary-light font-medium hover:underline"
                   target="_blank" rel="noopener noreferrer">
                   <svg className="h-6 w-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
@@ -326,7 +326,7 @@ const Home: NextPage = () => {
                   Ready to get started?
                 </h2>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-white/90">
-                  Join the growing network of institutions and professionals using VeriChain to secure and verify credentials.
+                  Join the growing network of institutions and professionals using Attestr Protocol to secure and verify attestations.
                 </p>
                 <div className="mt-8 flex justify-center gap-4 flex-wrap">
                   {address ?

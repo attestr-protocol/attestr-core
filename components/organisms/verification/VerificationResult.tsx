@@ -478,8 +478,8 @@ const VerificationResult: React.FC<VerificationResultProps> = ({
                             About AR.IO Permanent Storage
                         </h3>
                         <p className="text-gray-600 dark:text-gray-300 mb-4">
-                            VeriChain uses AR.IO Network testnet for permanent, decentralized storage of credential metadata.
-                            This ensures certificates:
+                            Attestr Protocol uses Arweave for permanent, decentralized storage of attestation metadata.
+                            This ensures attestations:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-gray-600 dark:text-gray-300">
                             <li>Cannot be tampered with or modified after issuance</li>

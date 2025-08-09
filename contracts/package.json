@@ -1,7 +1,7 @@
 {
-  "name": "verichain-contracts",
+  "name": "@attestr/contracts",
   "version": "1.0.0",
-  "description": "Improved smart contracts for VeriChain credential verification system",
+  "description": "Smart contracts for Attestr Protocol - Universal Verification Infrastructure",
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
@@ -28,7 +28,7 @@
     "polygon",
     "amoy"
   ],
-  "author": "VeriChain Team",
+  "author": "Attestr Protocol Team",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-verify": "^2.1.0",

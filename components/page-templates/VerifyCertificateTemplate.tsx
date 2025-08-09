@@ -31,7 +31,7 @@ const VerifyCertificateTemplate: React.FC<VerifyCertificateTemplateProps> = ({
             <div className="mb-8">
                 <h1 className="text-3xl font-bold">Verify Certificate</h1>
                 <p className="text-gray-600 dark:text-gray-300">
-                    Instantly verify the authenticity of any certificate issued on VeriChain.
+                    Instantly verify the authenticity of any attestation issued on Attestr Protocol.
                 </p>
             </div>
 

@@ -7,37 +7,37 @@ import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**
- * @title CertificateIssuance
- * @dev Smart contract for issuing and verifying academic and professional credentials on the blockchain
- * @notice Improved version with better gas efficiency, security, and functionality
+ * @title AttestationRegistry
+ * @dev Attestr Protocol - Universal attestation registry for issuing and verifying any type of attestation
+ * @notice Core contract of Attestr Protocol with gas efficiency, security, and multi-domain functionality
  */
-contract CertificateIssuance is AccessControl, Pausable, EIP712 {
+contract AttestationRegistry is AccessControl, Pausable, EIP712 {
     using ECDSA for bytes32;
 
     // ==========================================================================
     // Type declarations
     // ==========================================================================
 
-    // Certificate data structure - optimized for gas with packed storage
-    struct Certificate {
-        bytes32 id;              // Unique certificate ID
-        address issuer;          // Address of institution that issued the certificate
-        address recipient;       // Address of certificate recipient
-        string metadataURI;      // IPFS/Arweave URI containing certificate metadata
-        uint40 issueDate;        // Date certificate was issued (packed timestamp)
+    // Attestation data structure - optimized for gas with packed storage
+    struct Attestation {
+        bytes32 id;              // Unique attestation ID
+        address attester;        // Address of entity that issued the attestation
+        address subject;         // Address of attestation subject
+        string metadataURI;      // IPFS/Arweave URI containing attestation metadata
+        uint40 issueDate;        // Date attestation was issued (packed timestamp)
         uint40 expiryDate;       // Optional expiry date (0 if no expiry) (packed timestamp)
-        bool revoked;            // Whether the certificate has been revoked
+        bool revoked;            // Whether the attestation has been revoked
     }
 
-    // Pagination params for retrieving certificates in batches
+    // Pagination params for retrieving attestations in batches
     struct PaginationParams {
         uint256 offset;
         uint256 limit;
     }
 
     // Constants for EIP-712 signature verification
-    bytes32 private constant CERTIFICATE_TYPEHASH = keccak256(
-        "Certificate(bytes32 id,address recipient,string metadataURI,uint256 expiryDate)"
+    bytes32 private constant ATTESTATION_TYPEHASH = keccak256(
+        "Attestation(bytes32 id,address subject,string metadataURI,uint256 expiryDate)"
     );
 
     // ==========================================================================
@@ -46,22 +46,22 @@ contract CertificateIssuance is AccessControl, Pausable, EIP712 {
 
     // Roles
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
+    bytes32 public constant ATTESTER_ROLE = keccak256("ATTESTER_ROLE");
     bytes32 public constant REVOKER_ROLE = keccak256("REVOKER_ROLE");
 
     // Circuit breaker state
     bool private _circuitBroken;
 
-    // Mapping from certificate ID to Certificate
-    mapping(bytes32 => Certificate) public certificates;
+    // Mapping from attestation ID to Attestation
+    mapping(bytes32 => Attestation) public attestations;
     
-    // Mapping from address to array of certificate IDs
-    mapping(address => bytes32[]) private _recipientCertificates;
-    mapping(address => bytes32[]) private _issuerCertificates;
+    // Mapping from address to array of attestation IDs
+    mapping(address => bytes32[]) private _subjectAttestations;
+    mapping(address => bytes32[]) private _attesterAttestations;
 
-    // Total count of certificates for each user (for pagination)
-    mapping(address => uint256) public recipientCertificateCount;
-    mapping(address => uint256) public issuerCertificateCount;
+    // Total count of attestations for each user (for pagination)
+    mapping(address => uint256) public subjectAttestationCount;
+    mapping(address => uint256) public attesterAttestationCount;
 
     // ==========================================================================
     // Events
@@ -101,11 +101,11 @@ contract CertificateIssuance is AccessControl, Pausable, EIP712 {
     /**
      * @dev Constructor sets up roles and EIP-712 domain
      */
-    constructor() EIP712("VeriChain", "1.0") {
+    constructor() EIP712("AttestrProtocol", "2.0") {
         // Setup roles
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(ADMIN_ROLE, msg.sender);
-        _setupRole(ISSUER_ROLE, msg.sender);
+        _setupRole(ATTESTER_ROLE, msg.sender);
         _setupRole(REVOKER_ROLE, msg.sender);
         
         // Contract starts unpaused and circuit unbroken

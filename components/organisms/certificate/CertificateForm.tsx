@@ -170,7 +170,7 @@ const CertificateForm: React.FC<CertificateFormProps> = ({
         ...formData,
         certificateTitle: formData.credentialTitle,
         issuerWallet: walletAddress,
-        issuerName: 'VeriChain Institution',
+        issuerName: 'Attestr Protocol Institution',
       };
 
       // Issue certificate on blockchain without Arweave storage

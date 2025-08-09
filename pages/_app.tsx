@@ -63,11 +63,11 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>VeriChain - Decentralized Credential Verification</title>
-        <meta name="description" content="Secure, blockchain-based verification of academic and professional credentials with permanent storage on Arweave" />
+        <title>Attestr Protocol - Universal Verification Infrastructure</title>
+        <meta name="description" content="Attestr Protocol - Universal verification infrastructure for Web3. Attest to truth, verify everything." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#2563EB" />
-        <link rel="icon" href="https://github.com/SuryanshSS1011/VeriChain/blob/5e99424778968fd71591ea4655847b7db78c2bfe/public/banner.png" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <ThirdwebProvider
@@ -75,10 +75,10 @@ function MyApp({ Component, pageProps }: AppProps) {
         supportedChains={[PolygonAmoyTestnet]}
         clientId={process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID}
         dAppMeta={{
-          name: "VeriChain",
-          description: "Decentralized credential verification system with permanent storage on Arweave",
+          name: "Attestr Protocol",
+          description: "Universal verification infrastructure for Web3",
           logoUrl: "public/banner.png",
-          url: "https://github.com/SuryanshSS1011/VeriChain/blob/5e99424778968fd71591ea4655847b7db78c2bfe/",
+          url: "https://github.com/attestr-protocol/attestr-core",
         }}
       >
         <ThemeProvider>

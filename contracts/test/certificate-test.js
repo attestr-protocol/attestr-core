@@ -2,7 +2,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("VeriChain", function () {
+describe("Attestr Protocol", function () {
     let certificateIssuance;
     let verification;
     let owner, admin, issuer1, issuer2, recipient1, recipient2, verifier;

@@ -62,7 +62,7 @@ const ProfilePage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>Profile & Wallet | VeriChain</title>
+                <title>Profile & Wallet | Attestr Protocol</title>
                 <meta name="description" content="Manage your blockchain credentials" />
             </Head>
 
