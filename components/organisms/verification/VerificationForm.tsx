@@ -35,7 +35,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
                     id="certificateId"
                     name="certificateId"
                     value={certificateId}
-                    onChange={(e) => setCertificateId(e.target.value)}
+                    onChange={(value) => setCertificateId(value)}
                     placeholder="Enter certificate ID or hash"
                     className="flex-grow"
                     required

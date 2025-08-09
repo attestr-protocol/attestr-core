@@ -1,7 +1,7 @@
 // components/atoms/inputs/TextInput.tsx
-import React, { InputHTMLAttributes, ChangeEvent, ReactNode } from 'react';
+import React, { InputHTMLAttributes, ReactNode } from 'react';
 
-interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type'> {
+interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   /** Input id */
   id: string;
   /** Input name */
@@ -9,7 +9,9 @@ interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'on
   /** Input value */
   value: string;
   /** Change handler */
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onChange: (value: string) => void;
+  /** Input type */
+  type?: 'text' | 'email' | 'password' | 'tel' | 'url' | 'search' | 'number' | 'datetime-local' | 'date' | 'time';
   /** Placeholder text */
   placeholder?: string;
   /** Whether the input is required */
@@ -22,6 +24,18 @@ interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'on
   startIcon?: ReactNode;
   /** Icon to display at the end of the input */
   endIcon?: ReactNode;
+  /** Input label */
+  label?: string;
+  /** Help text */
+  helpText?: string;
+  /** onBlur handler */
+  onBlur?: () => void;
+  /** Min value for number inputs */
+  min?: number | string;
+  /** Max value for number inputs */
+  max?: number | string;
+  /** Step value for number inputs */
+  step?: number | string;
 }
 
 const TextInput: React.FC<TextInputProps> = ({
@@ -29,12 +43,19 @@ const TextInput: React.FC<TextInputProps> = ({
     name,
     value,
     onChange,
+    type = 'text',
     placeholder = '',
     required = false,
     error = '',
     className = '',
     startIcon,
     endIcon,
+    label,
+    helpText,
+    onBlur,
+    min,
+    max,
+    step,
     ...props
 }) => {
     // Base input classes
@@ -61,29 +82,49 @@ const TextInput: React.FC<TextInputProps> = ({
     ].join(' ');
 
     return (
-        <div className="w-full relative">
-            {startIcon && (
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                    {startIcon}
-                </div>
+        <div className={`w-full ${className}`}>
+            {label && (
+                <label 
+                    htmlFor={id}
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                    {label}
+                    {required && <span className="text-red-500 ml-1">*</span>}
+                </label>
             )}
             
-            <input
-                id={id}
-                name={name}
-                type="text"
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                required={required}
-                className={inputClasses}
-                {...props}
-            />
+            <div className="relative">
+                {startIcon && (
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                        {startIcon}
+                    </div>
+                )}
+                
+                <input
+                    id={id}
+                    name={name}
+                    type={type}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onBlur={onBlur}
+                    placeholder={placeholder}
+                    required={required}
+                    min={min}
+                    max={max}
+                    step={step}
+                    className={inputClasses}
+                    {...props}
+                />
+                
+                {endIcon && (
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
+                        {endIcon}
+                    </div>
+                )}
+            </div>
             
-            {endIcon && (
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
-                    {endIcon}
-                </div>
+            {helpText && (
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{helpText}</p>
             )}
             
             {error && (

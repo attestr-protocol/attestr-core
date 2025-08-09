@@ -58,6 +58,31 @@ function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     // Patch the circular reference issue in ThirdWeb
     patchCircularJsonIssue();
+
+    // Add CSP violation event listeners for debugging
+    if (typeof window !== 'undefined') {
+      const handleCSPViolation = (e: any) => {
+        console.error('[CSP Violation]', {
+          blockedURI: e.blockedURI,
+          documentURI: e.documentURI,
+          effectiveDirective: e.effectiveDirective,
+          originalPolicy: e.originalPolicy,
+          sourceFile: e.sourceFile,
+          lineNumber: e.lineNumber,
+          columnNumber: e.columnNumber,
+          violatedDirective: e.violatedDirective,
+          sample: e.sample,
+          timestamp: new Date().toISOString()
+        });
+      };
+
+      // Listen for CSP violations
+      document.addEventListener('securitypolicyviolation', handleCSPViolation);
+
+      return () => {
+        document.removeEventListener('securitypolicyviolation', handleCSPViolation);
+      };
+    }
   }, []);
 
   return (

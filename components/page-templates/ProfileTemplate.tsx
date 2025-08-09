@@ -1,5 +1,6 @@
 // components/page-templates/ProfileTemplate.js
 import React from 'react';
+import { useRouter } from 'next/router';
 import { DocumentDuplicateIcon, ShareIcon, ExternalLinkIcon } from '@heroicons/react/outline';
 import Card from '../molecules/cards/Card';
 import Button from '../atoms/buttons/Button';
@@ -34,6 +35,7 @@ const ProfileTemplate: React.FC<ProfileTemplateProps> = ({
     className = '',
     ...props
 }) => {
+    const router = useRouter();
     const { darkMode } = useTheme();
 
     // Format dates
@@ -207,7 +209,7 @@ const ProfileTemplate: React.FC<ProfileTemplateProps> = ({
                                 </p>
                                 <Button
                                     variant="primary"
-                                    onClick={() => window.location.href = '/issue'}
+                                    onClick={() => router.push('/issue')}
                                 >
                                     Request a Credential
                                 </Button>

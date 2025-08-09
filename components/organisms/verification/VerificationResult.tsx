@@ -1,5 +1,6 @@
 // components/organisms/verification/VerificationResult.tsx
 import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 import {
     CheckCircleIcon,
     XCircleIcon,
@@ -42,6 +43,7 @@ const VerificationResult: React.FC<VerificationResultProps> = ({
     className = '',
     ...props
 }) => {
+    const router = useRouter();
     const [showARIOModal, setShowARIOModal] = useState(false);
 
     // If certificate data is not available
@@ -64,7 +66,7 @@ const VerificationResult: React.FC<VerificationResultProps> = ({
                     </p>
                     <Button
                         variant="primary"
-                        onClick={() => window.location.href = '/verify'}
+                        onClick={() => router.push('/verify')}
                     >
                         Try Another Certificate
                     </Button>
@@ -539,7 +541,13 @@ const VerificationResult: React.FC<VerificationResultProps> = ({
                     <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                         <Button
                             variant="primary"
-                            onClick={() => window.open('https://ar.io', '_blank')}
+                            onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = 'https://ar.io';
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                                link.click();
+                            }}
                             className="mr-3"
                         >
                             Learn More About AR.IO

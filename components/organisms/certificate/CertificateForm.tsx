@@ -107,13 +107,11 @@ const CertificateForm: React.FC<CertificateFormProps> = ({
   //   checkStorageStatus();
   // }, [checkStorageStatus]);
 
-  // Handle form field changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const checked = e.target instanceof HTMLInputElement ? e.target.checked : false;
+  // Handle form field changes  
+  const handleFieldChange = (name: string, value: string | boolean) => {
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     });
 
     // Clear error for this field when changed
@@ -123,6 +121,13 @@ const CertificateForm: React.FC<CertificateFormProps> = ({
         [name]: '',
       });
     }
+  };
+
+  // Handle form field changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const checked = e.target instanceof HTMLInputElement ? e.target.checked : false;
+    handleFieldChange(name, type === 'checkbox' ? checked : value);
   };
 
   // Validate form fields
@@ -253,7 +258,7 @@ const CertificateForm: React.FC<CertificateFormProps> = ({
               id="recipientName"
               name="recipientName"
               value={formData.recipientName}
-              onChange={handleChange}
+              onChange={(value) => handleFieldChange('recipientName', value)}
               placeholder="Full name of the recipient"
               required
               error={errors.recipientName}
@@ -270,7 +275,7 @@ const CertificateForm: React.FC<CertificateFormProps> = ({
               id="recipientWallet"
               name="recipientWallet"
               value={formData.recipientWallet}
-              onChange={handleChange}
+              onChange={(value) => handleFieldChange('recipientWallet', value)}
               placeholder="0x..."
               required
               error={errors.recipientWallet}
@@ -289,7 +294,7 @@ const CertificateForm: React.FC<CertificateFormProps> = ({
               id="credentialTitle"
               name="credentialTitle"
               value={formData.credentialTitle}
-              onChange={handleChange}
+              onChange={(value) => handleFieldChange('credentialTitle', value)}
               placeholder="e.g., Bachelor of Computer Science"
               required
               error={errors.credentialTitle}
@@ -348,7 +353,7 @@ const CertificateForm: React.FC<CertificateFormProps> = ({
             id="termsAccepted"
             name="termsAccepted"
             checked={formData.termsAccepted}
-            onChange={handleChange}
+            onChange={(checked) => handleFieldChange('termsAccepted', checked)}
             label="I confirm that I am authorized to issue this credential and that all information is accurate"
             required
           />

@@ -441,6 +441,11 @@ contract AttestationRegistry is AccessControl, Pausable, EIP712 {
         require(schema.active, "Schema is not active");
         require(data.length > 0, "Attestation data cannot be empty");
         
+        // Check expiryDate is either 0 or in the future
+        if (expiryDate > 0) {
+            require(expiryDate > block.timestamp, "Expiry date must be in the future");
+        }
+        
         // Generate unique attestation ID
         _attestationIdCounter.increment();
         bytes32 attestationId = keccak256(
@@ -456,11 +461,6 @@ contract AttestationRegistry is AccessControl, Pausable, EIP712 {
         
         // Ensure attestation ID doesn't already exist
         require(attestations[attestationId].attester == address(0), "Attestation ID already exists");
-        
-        // Check expiryDate is either 0 or in the future
-        if (expiryDate > 0) {
-            require(expiryDate > block.timestamp, "Expiry date must be in the future");
-        }
         
         // Convert timestamps to uint40 for better gas efficiency
         uint40 issueDate = uint40(block.timestamp);
@@ -536,7 +536,7 @@ contract AttestationRegistry is AccessControl, Pausable, EIP712 {
         // Allocate array for attestation IDs
         bytes32[] memory attestationIds = new bytes32[](subjects.length);
         
-        // Current timestamp used for all certificates in batch (gas optimization)
+        // Current timestamp used for all attestations in batch (gas optimization)
         uint40 issueDate = uint40(block.timestamp);
         
         // Issue each attestation
@@ -606,254 +606,144 @@ contract AttestationRegistry is AccessControl, Pausable, EIP712 {
         
         return attestationIds;
     }
-    
-    /**
-     * @dev Issue an attestation with an EIP-712 signature from an authorized attester
-     * @param signature Signature of the attestation data
-     * @param schemaId ID of the schema to use
-     * @param subject Subject's wallet address
-     * @param data Encoded attestation data
-     * @param metadataURI Optional IPFS/Arweave URI for additional metadata
-     * @param expiryDate Optional expiry date (0 if no expiry)
-     * @return attestationId The unique ID of the issued attestation
-     */
-    function issueAttestationWithSignature(
-        bytes calldata signature,
-        bytes32 schemaId,
-        address subject,
-        bytes calldata data,
-        string calldata metadataURI,
-        uint256 expiryDate
-    ) 
-        external 
-        whenNotPaused 
-        whenCircuitNotBroken
-        returns (bytes32) 
-    {
-        // Pre-compute the certificate ID
-        bytes32 certificateId = keccak256(
-            abi.encodePacked(
-                recipient,
-                metadataURI,
-                expiryDate,
-                block.timestamp
-            )
-        );
-        
-        // Create EIP-712 hash for the certificate data
-        bytes32 structHash = keccak256(abi.encode(
-            CERTIFICATE_TYPEHASH,
-            certificateId,
-            recipient,
-            keccak256(bytes(metadataURI)),
-            expiryDate
-        ));
-        
-        bytes32 hash = _hashTypedDataV4(structHash);
-        
-        // Recover signer from signature
-        address signer = hash.recover(signature);
-        
-        // Ensure signer is an authorized issuer
-        require(hasRole(ISSUER_ROLE, signer), "Signer is not an authorized issuer");
-        
-        // Ensure certificate ID doesn't already exist
-        require(certificates[certificateId].issuer == address(0), "Certificate ID already exists");
-        
-        // Check expiryDate is either 0 or in the future
-        if (expiryDate > 0) {
-            require(expiryDate > block.timestamp, "Expiry date must be in the future");
-        }
-        
-        // Convert timestamps to uint40 for better gas efficiency
-        uint40 issueDate = uint40(block.timestamp);
-        uint40 packedExpiryDate = expiryDate > 0 ? uint40(expiryDate) : 0;
-        
-        // Create and store the certificate
-        certificates[certificateId] = Certificate({
-            id: certificateId,
-            issuer: signer,
-            recipient: recipient,
-            metadataURI: metadataURI,
-            issueDate: issueDate,
-            expiryDate: packedExpiryDate,
-            revoked: false
-        });
-        
-        // Add to recipient's certificates
-        _recipientCertificates[recipient].push(certificateId);
-        recipientCertificateCount[recipient]++;
-        
-        // Add to issuer's certificates
-        _issuerCertificates[signer].push(certificateId);
-        issuerCertificateCount[signer]++;
-        
-        // Emit event
-        emit CertificateIssued(certificateId, signer, recipient, issueDate);
-        
-        return certificateId;
-    }
 
     // ==========================================================================
-    // Certificate management functions
+    // Attestation management functions
     // ==========================================================================
     
     /**
-     * @dev Revoke a certificate
-     * @param certificateId ID of the certificate to revoke
+     * @dev Revoke an attestation
+     * @param attestationId ID of the attestation to revoke
      */
-    function revokeCertificate(bytes32 certificateId) 
+    function revokeAttestation(bytes32 attestationId) 
         external 
         whenNotPaused 
     {
-        Certificate storage cert = certificates[certificateId];
+        Attestation storage attestation = attestations[attestationId];
         
-        // Check that certificate exists
-        require(cert.issuer != address(0), "Certificate does not exist");
-        require(!cert.revoked, "Certificate already revoked");
+        // Check that attestation exists
+        require(attestation.attester != address(0), "Attestation does not exist");
+        require(!attestation.revoked, "Attestation already revoked");
         
-        // Only the original issuer, an address with REVOKER_ROLE, or an admin can revoke a certificate
+        // Only the original attester, an address with REVOKER_ROLE, or an admin can revoke an attestation
         require(
-            cert.issuer == msg.sender || 
+            attestation.attester == msg.sender || 
             hasRole(REVOKER_ROLE, msg.sender) || 
             hasRole(ADMIN_ROLE, msg.sender),
-            "Not authorized to revoke this certificate"
+            "Not authorized to revoke this attestation"
         );
         
         // Set revoked flag
-        cert.revoked = true;
+        attestation.revoked = true;
         
         // Emit event
-        emit CertificateRevoked(certificateId, cert.issuer, msg.sender, block.timestamp);
+        emit AttestationRevoked(attestationId, attestation.attester, msg.sender, block.timestamp);
     }
     
     /**
-     * @dev Update the metadata URI for a certificate (only by issuer or admin)
-     * @param certificateId ID of the certificate to update
+     * @dev Update the metadata URI for an attestation (only by attester or admin)
+     * @param attestationId ID of the attestation to update
      * @param newMetadataURI New metadata URI
      */
-    function updateMetadataURI(bytes32 certificateId, string calldata newMetadataURI) 
+    function updateMetadataURI(bytes32 attestationId, string calldata newMetadataURI) 
         external 
         whenNotPaused 
         whenCircuitNotBroken 
     {
-        Certificate storage cert = certificates[certificateId];
+        Attestation storage attestation = attestations[attestationId];
         
-        // Check that certificate exists
-        require(cert.issuer != address(0), "Certificate does not exist");
-        require(!cert.revoked, "Cannot update revoked certificate");
+        // Check that attestation exists
+        require(attestation.attester != address(0), "Attestation does not exist");
+        require(!attestation.revoked, "Cannot update revoked attestation");
         
-        // Only the original issuer or an admin can update metadata
+        // Only the original attester or an admin can update metadata
         require(
-            cert.issuer == msg.sender || hasRole(ADMIN_ROLE, msg.sender),
-            "Not authorized to update this certificate"
+            attestation.attester == msg.sender || hasRole(ADMIN_ROLE, msg.sender),
+            "Not authorized to update this attestation"
         );
         
         // Update metadata URI
-        cert.metadataURI = newMetadataURI;
+        attestation.metadataURI = newMetadataURI;
         
         // Emit event
-        emit MetadataUpdated(certificateId, newMetadataURI, msg.sender);
+        emit MetadataUpdated(attestationId, newMetadataURI, msg.sender);
     }
 
     // ==========================================================================
-    // Certificate verification functions
+    // Attestation verification functions
     // ==========================================================================
     
     /**
-     * @dev Verify a certificate
-     * @param certificateId ID of the certificate to verify
-     * @return isValid Whether the certificate is valid (exists and not revoked)
-     * @return issuer Address of the issuing institution
-     * @return issueDate Date when the certificate was issued
-     * @return expiryDate Expiration date of the certificate (0 if no expiry)
+     * @dev Verify an attestation
+     * @param attestationId ID of the attestation to verify
+     * @return isValid Whether the attestation is valid (exists and not revoked)
+     * @return attester Address of the attesting entity
+     * @return issueDate Date when the attestation was issued
+     * @return expiryDate Expiration date of the attestation (0 if no expiry)
      */
-    function verifyCertificate(bytes32 certificateId)
+    function verifyAttestation(bytes32 attestationId)
         external
         view
         returns (
             bool isValid,
-            address issuer,
+            address attester,
             uint256 issueDate,
             uint256 expiryDate
         )
     {
-        Certificate storage cert = certificates[certificateId];
+        Attestation storage attestation = attestations[attestationId];
         
-        // Check that certificate exists
-        if (cert.issuer == address(0)) {
+        // Check that attestation exists
+        if (attestation.attester == address(0)) {
             return (false, address(0), 0, 0);
         }
         
-        // Check if certificate is revoked
-        if (cert.revoked) {
-            return (false, cert.issuer, cert.issueDate, cert.expiryDate);
+        // Check if attestation is revoked
+        if (attestation.revoked) {
+            return (false, attestation.attester, attestation.issueDate, attestation.expiryDate);
         }
         
-        // Check if certificate is expired (if it has an expiry date)
-        if (cert.expiryDate > 0 && uint256(cert.expiryDate) < block.timestamp) {
-            return (false, cert.issuer, cert.issueDate, cert.expiryDate);
+        // Check if attestation is expired (if it has an expiry date)
+        if (attestation.expiryDate > 0 && uint256(attestation.expiryDate) < block.timestamp) {
+            return (false, attestation.attester, attestation.issueDate, attestation.expiryDate);
         }
         
-        // Certificate is valid
-        return (true, cert.issuer, cert.issueDate, cert.expiryDate);
+        // Attestation is valid
+        return (true, attestation.attester, attestation.issueDate, attestation.expiryDate);
     }
     
     /**
-     * @dev Get certificate details
-     * @param certificateId ID of the certificate
-     * @return issuer Address of the issuing institution
-     * @return recipient Address of the certificate recipient
-     * @return metadataURI Arweave/IPFS URI containing certificate metadata
-     * @return issueDate Date when the certificate was issued
-     * @return expiryDate Expiration date of the certificate (0 if no expiry)
-     * @return revoked Whether the certificate has been revoked
+     * @dev Get attestation details
+     * @param attestationId ID of the attestation
+     * @return Attestation data structure
      */
-    function getCertificate(bytes32 certificateId)
+    function getAttestation(bytes32 attestationId)
         external
         view
-        returns (
-            address issuer,
-            address recipient,
-            string memory metadataURI,
-            uint256 issueDate,
-            uint256 expiryDate,
-            bool revoked
-        )
+        returns (Attestation memory)
     {
-        Certificate storage cert = certificates[certificateId];
-        
-        // Check that certificate exists
-        require(cert.issuer != address(0), "Certificate does not exist");
-        
-        return (
-            cert.issuer,
-            cert.recipient,
-            cert.metadataURI,
-            cert.issueDate,
-            cert.expiryDate,
-            cert.revoked
-        );
+        require(attestations[attestationId].attester != address(0), "Attestation does not exist");
+        return attestations[attestationId];
     }
     
     /**
-     * @dev Get certificates for a recipient with pagination
-     * @param recipient Address of the certificate recipient
+     * @dev Get attestations for a subject with pagination
+     * @param subject Address of the attestation subject
      * @param offset Pagination offset
      * @param limit Maximum number of items to return (0 for no limit)
-     * @return certificateIds Array of certificate IDs
-     * @return totalCount Total number of certificates for this recipient
+     * @return attestationIds Array of attestation IDs
+     * @return totalCount Total number of attestations for this subject
      */
-    function getCertificatesForRecipient(
-        address recipient,
+    function getAttestationsForSubject(
+        address subject,
         uint256 offset,
         uint256 limit
     )
         external
         view
-        returns (bytes32[] memory certificateIds, uint256 totalCount)
+        returns (bytes32[] memory attestationIds, uint256 totalCount)
     {
-        totalCount = recipientCertificateCount[recipient];
+        totalCount = subjectAttestationCount[subject];
         
         // Handle empty case
         if (totalCount == 0 || offset >= totalCount) {
@@ -865,34 +755,34 @@ contract AttestationRegistry is AccessControl, Pausable, EIP712 {
         uint256 actualLimit = (limit == 0 || limit > availableItems) ? availableItems : limit;
         
         // Create result array
-        certificateIds = new bytes32[](actualLimit);
+        attestationIds = new bytes32[](actualLimit);
         
-        // Fill array with certificate IDs within range
+        // Fill array with attestation IDs within range
         for (uint256 i = 0; i < actualLimit; i++) {
-            certificateIds[i] = _recipientCertificates[recipient][offset + i];
+            attestationIds[i] = _subjectAttestations[subject][offset + i];
         }
         
-        return (certificateIds, totalCount);
+        return (attestationIds, totalCount);
     }
     
     /**
-     * @dev Get certificates issued by an institution with pagination
-     * @param issuer Address of the issuing institution
+     * @dev Get attestations issued by an attester with pagination
+     * @param attester Address of the attesting entity
      * @param offset Pagination offset
      * @param limit Maximum number of items to return (0 for no limit)
-     * @return certificateIds Array of certificate IDs
-     * @return totalCount Total number of certificates for this issuer
+     * @return attestationIds Array of attestation IDs
+     * @return totalCount Total number of attestations for this attester
      */
-    function getCertificatesForIssuer(
-        address issuer,
+    function getAttestationsForAttester(
+        address attester,
         uint256 offset,
         uint256 limit
     )
         external
         view
-        returns (bytes32[] memory certificateIds, uint256 totalCount)
+        returns (bytes32[] memory attestationIds, uint256 totalCount)
     {
-        totalCount = issuerCertificateCount[issuer];
+        totalCount = attesterAttestationCount[attester];
         
         // Handle empty case
         if (totalCount == 0 || offset >= totalCount) {
@@ -904,40 +794,79 @@ contract AttestationRegistry is AccessControl, Pausable, EIP712 {
         uint256 actualLimit = (limit == 0 || limit > availableItems) ? availableItems : limit;
         
         // Create result array
-        certificateIds = new bytes32[](actualLimit);
+        attestationIds = new bytes32[](actualLimit);
         
-        // Fill array with certificate IDs within range
+        // Fill array with attestation IDs within range
         for (uint256 i = 0; i < actualLimit; i++) {
-            certificateIds[i] = _issuerCertificates[issuer][offset + i];
+            attestationIds[i] = _attesterAttestations[attester][offset + i];
         }
         
-        return (certificateIds, totalCount);
+        return (attestationIds, totalCount);
+    }
+    
+    /**
+     * @dev Get attestations for a schema with pagination
+     * @param schemaId ID of the schema
+     * @param offset Pagination offset
+     * @param limit Maximum number of items to return (0 for no limit)
+     * @return attestationIds Array of attestation IDs
+     * @return totalCount Total number of attestations for this schema
+     */
+    function getAttestationsForSchema(
+        bytes32 schemaId,
+        uint256 offset,
+        uint256 limit
+    )
+        external
+        view
+        returns (bytes32[] memory attestationIds, uint256 totalCount)
+    {
+        totalCount = schemaAttestationCount[schemaId];
+        
+        // Handle empty case
+        if (totalCount == 0 || offset >= totalCount) {
+            return (new bytes32[](0), totalCount);
+        }
+        
+        // Calculate actual limit based on available items
+        uint256 availableItems = totalCount - offset;
+        uint256 actualLimit = (limit == 0 || limit > availableItems) ? availableItems : limit;
+        
+        // Create result array
+        attestationIds = new bytes32[](actualLimit);
+        
+        // Fill array with attestation IDs within range
+        for (uint256 i = 0; i < actualLimit; i++) {
+            attestationIds[i] = _schemaAttestations[schemaId][offset + i];
+        }
+        
+        return (attestationIds, totalCount);
     }
 
     // ==========================================================================
-    // Batch certificate verification functions
+    // Batch attestation verification functions
     // ==========================================================================
     
     /**
-     * @dev Verify multiple certificates in a single call
-     * @param certificateIds Array of certificate IDs to verify
+     * @dev Verify multiple attestations in a single call
+     * @param attestationIds Array of attestation IDs to verify
      * @return results Array of verification results (isValid)
      */
-    function batchVerifyCertificates(bytes32[] calldata certificateIds)
+    function batchVerifyAttestations(bytes32[] calldata attestationIds)
         external
         view
         returns (bool[] memory results)
     {
-        results = new bool[](certificateIds.length);
+        results = new bool[](attestationIds.length);
         
-        for (uint256 i = 0; i < certificateIds.length; i++) {
-            Certificate storage cert = certificates[certificateIds[i]];
+        for (uint256 i = 0; i < attestationIds.length; i++) {
+            Attestation storage attestation = attestations[attestationIds[i]];
             
-            // Certificate is valid if it exists, is not revoked, and is not expired
+            // Attestation is valid if it exists, is not revoked, and is not expired
             results[i] = (
-                cert.issuer != address(0) &&
-                !cert.revoked &&
-                (cert.expiryDate == 0 || uint256(cert.expiryDate) >= block.timestamp)
+                attestation.attester != address(0) &&
+                !attestation.revoked &&
+                (attestation.expiryDate == 0 || uint256(attestation.expiryDate) >= block.timestamp)
             );
         }
         
@@ -949,41 +878,64 @@ contract AttestationRegistry is AccessControl, Pausable, EIP712 {
     // ==========================================================================
     
     /**
-     * @dev Get all certificates for a recipient (legacy method without pagination)
-     * @param recipient Address of the certificate recipient
-     * @return Array of certificate IDs
+     * @dev Check if an address is an authorized attester
+     * @param attesterAddress Address to check
+     * @return Whether the address is an authorized attester
      */
-    function getAllCertificatesForRecipient(address recipient)
-        external
-        view
-        returns (bytes32[] memory)
-    {
-        return _recipientCertificates[recipient];
-    }
-    
-    /**
-     * @dev Get all certificates issued by an institution (legacy method without pagination)
-     * @param issuer Address of the issuing institution
-     * @return Array of certificate IDs
-     */
-    function getAllCertificatesForIssuer(address issuer)
-        external
-        view
-        returns (bytes32[] memory)
-    {
-        return _issuerCertificates[issuer];
-    }
-    
-    /**
-     * @dev Check if an address is an authorized issuer
-     * @param issuerAddress Address to check
-     * @return Whether the address is an authorized issuer
-     */
-    function isAuthorizedIssuer(address issuerAddress)
+    function isAuthorizedAttester(address attesterAddress)
         external
         view
         returns (bool)
     {
-        return hasRole(ISSUER_ROLE, issuerAddress);
+        return hasRole(ATTESTER_ROLE, attesterAddress);
+    }
+    
+    /**
+     * @dev Check if an address can create schemas
+     * @param creatorAddress Address to check
+     * @return Whether the address can create schemas
+     */
+    function canCreateSchema(address creatorAddress)
+        external
+        view
+        returns (bool)
+    {
+        return hasRole(SCHEMA_CREATOR_ROLE, creatorAddress);
+    }
+    
+    /**
+     * @dev Get schema ID by name
+     * @param name Schema name
+     * @return schemaId Schema ID (bytes32(0) if not found)
+     */
+    function getSchemaIdByName(string calldata name)
+        external
+        view
+        returns (bytes32)
+    {
+        return schemaNameToId[name];
+    }
+    
+    /**
+     * @dev Get contract statistics
+     * @return totalSchemas_ Total number of schemas created
+     * @return totalAttestations_ Total number of attestations issued
+     * @return activeSchemas Number of active schemas
+     */
+    function getStatistics()
+        external
+        view
+        returns (uint256 totalSchemas_, uint256 totalAttestations_, uint256 activeSchemas)
+    {
+        totalSchemas_ = totalSchemas;
+        totalAttestations_ = totalAttestations;
+        
+        // Count active schemas
+        activeSchemas = 0;
+        for (uint256 i = 0; i < _allSchemaIds.length; i++) {
+            if (schemas[_allSchemaIds[i]].active) {
+                activeSchemas++;
+            }
+        }
     }
 }

@@ -10,7 +10,11 @@ import {
     MoonIcon,
     SunIcon,
     MenuIcon,
-    XIcon
+    XIcon,
+    ViewGridIcon,
+    CollectionIcon,
+    CogIcon,
+    ChartBarIcon
 } from '@heroicons/react/outline';
 import { useTheme } from '../../contexts/ThemeContext';
 import Button from '../atoms/buttons/Button';
@@ -53,10 +57,12 @@ const Header: React.FC<HeaderProps> = ({
     const { darkMode, toggleDarkMode } = useTheme();
 
     const navigation: NavigationItem[] = [
-        { name: 'Home', href: '/', icon: HomeIcon },
-        { name: 'Issue Certificate', href: '/issue', icon: DocumentTextIcon },
-        { name: 'Verify Certificate', href: '/verify', icon: CheckCircleIcon },
-        { name: 'Profile & Wallet', href: '/profile', icon: UserCircleIcon },
+        { name: 'Dashboard', href: '/dashboard', icon: ViewGridIcon },
+        { name: 'Create', href: '/create', icon: DocumentTextIcon },
+        { name: 'Browse', href: '/browse', icon: CollectionIcon },
+        { name: 'Verify', href: '/verify', icon: CheckCircleIcon },
+        { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
+        { name: 'Profile', href: '/profile', icon: UserCircleIcon },
     ];
 
     return (
@@ -67,7 +73,7 @@ const Header: React.FC<HeaderProps> = ({
                         {/* Logo */}
                         <Link href="/" className="flex-shrink-0 flex items-center">
                             <span className="text-2xl font-bold text-primary dark:text-primary-light">
-                                Veri<span className="text-secondary dark:text-secondary-light">Chain</span>
+                                Attestr<span className="text-secondary dark:text-secondary-light">Protocol</span>
                             </span>
                         </Link>
 

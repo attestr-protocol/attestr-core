@@ -1,17 +1,23 @@
 // contexts/index.ts
-// Centralized exports for all context files
+// Centralized exports for all context files - Updated for Universal Attestation System
 
-// Context Providers
+// Primary Context Providers (Universal Attestation System)
 export { AttestationProvider, useAttestationContext } from './AttestationContext';
-export { CertificateProvider, useCertificateContext } from './CertificateContext';
 export { ThemeProvider, useTheme } from './ThemeContext';
-export { WalletProvider, useWalletContext } from './WalletContext';
+export { WalletProvider, useWalletContext as useWallet } from './WalletContext';
+
+// Legacy Context Providers (for backward compatibility - will be deprecated)
+/** @deprecated Use AttestationProvider instead */
+export { CertificateProvider, useCertificate } from './CertificateContext';
 
 // Types
 export * from './types';
 
-// Individual context exports (if needed for specific imports)
-export type { AttestationContextValue } from './AttestationContext';
-export type { CertificateContextValue } from './CertificateContext';
-export type { ThemeContextValue } from './ThemeContext';
-export type { WalletContextValue } from './WalletContext';
+// Individual context exports (for specific imports)
+export type { AttestationContextValue, AttestationProviderProps } from './AttestationContext';
+export type { ThemeContextValue, ThemeProviderProps } from './ThemeContext';
+export type { WalletContextValue, WalletProviderProps } from './WalletContext';
+
+// Legacy types (for backward compatibility)
+/** @deprecated Use AttestationContextValue instead */
+export type { CertificateContextValue, CertificateProviderProps } from './CertificateContext';

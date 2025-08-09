@@ -1,5 +1,6 @@
 // components/templates/CertificateDetailTemplate.tsx
 import React from 'react';
+import { useRouter } from 'next/router';
 import VerificationResult from '../organisms/verification/VerificationResult';
 
 interface CertificateDetailTemplateProps {
@@ -29,6 +30,7 @@ const CertificateDetailTemplate: React.FC<CertificateDetailTemplateProps> = ({
     className = '',
     ...props
 }) => {
+    const router = useRouter();
     if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -66,7 +68,7 @@ const CertificateDetailTemplate: React.FC<CertificateDetailTemplateProps> = ({
                     </div>
                 </div>
                 <button
-                    onClick={() => window.location.href = '/verify'}
+                    onClick={() => router.push('/verify')}
                     className="btn-primary mt-4"
                 >
                     Try Another Certificate

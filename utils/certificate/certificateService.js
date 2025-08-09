@@ -3,14 +3,15 @@ import { ethers } from 'ethers';
 import CertificateIssuanceABI from '../../contracts/abis/CertificateIssuance.json';
 import VerificationABI from '../../contracts/abis/Verification.json';
 import { getProvider } from '../blockchain/walletUtils';
-import {
-    formatCertificateMetadata,
-    storeCertificateMetadata,
-    retrieveCertificateMetadata,
-    isStorageInitialized,
-    createMockTransaction,
-    retrieveMockTransaction,
-} from '../storage/arweaveStorage';
+// TODO: Implement storage integration from scratch later
+// import {
+//     formatCertificateMetadata,
+//     storeCertificateMetadata,
+//     retrieveCertificateMetadata,
+//     isStorageInitialized,
+//     createMockTransaction,
+//     retrieveMockTransaction,
+// } from '../storage/arweaveStorage';
 
 // Contract addresses from environment variables
 const CONTRACT_ADDRESSES = {
